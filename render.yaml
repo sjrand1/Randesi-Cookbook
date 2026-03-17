@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: greco-family-cookbook
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: greco-cookbook-db
+          property: connectionString
+
+databases:
+  - name: greco-cookbook-db
+    plan: free
+    databaseName: grecocookbook
+    user: cookbook
