@@ -103,7 +103,9 @@ async function setupDatabase() {
 // ── Auth check endpoint ──
 app.post('/api/auth', (req, res) => {
   const { password } = req.body;
-  if (password === COOKBOOK_PASSWORD) {
+  const expected = COOKBOOK_PASSWORD;
+  console.log('Auth attempt - received:', JSON.stringify(password), 'expected:', JSON.stringify(expected), 'match:', password === expected);
+  if (password === expected) {
     res.json({ success: true });
   } else {
     res.status(401).json({ success: false, error: 'Incorrect password' });
