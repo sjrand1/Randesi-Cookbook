@@ -28,10 +28,16 @@ function requireAuth(req, res, next) {
 }
 
 // ── Auto-setup: create tables and seed on first run ──
-// ── Seed data loaded from file (keeps server.js small and fast) ──
-const seedData = require('./seed-data.json');
-const RECIPES = seedData.recipes;
-const INTRO = seedData.intro;
+// ── Seed data loaded from file ──
+let RECIPES = [], INTRO = [];
+try {
+  const seedData = require('./seed-data.json');
+  RECIPES = seedData.recipes || [];
+  INTRO = seedData.intro || [];
+  console.log('Loaded seed data:', RECIPES.length, 'recipes,', INTRO.length, 'intro pages');
+} catch(e) {
+  console.warn('seed-data.json not found - database will not be seeded automatically');
+}
 
 
 async function setupDatabase() {
