@@ -13,7 +13,7 @@
     --accent: #8B3A2A; --accent-light: #F5EBE8; --accent-mid: #C25B45;
     --gold: #B07D3A; --gold-light: #F7F0E4; --teal: #2C6E6A; --teal-light: #E6F2F1;
     --intro-color: #3D5A80; --intro-light: #E8EEF4;
-    --sidebar-w: 260px; --detail-w: 380px;
+    --sidebar-w: 260px; --detail-w: 480px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; background: var(--cream); color: var(--ink); font-family: "DM Sans", sans-serif; font-size: 14px; }
@@ -138,6 +138,20 @@
   @media(max-width:900px){:root{--detail-w:260px}}
   @media(max-width:700px){.detail{display:none}:root{--sidebar-w:180px}}
   @media(max-width:500px){.sidebar{display:none}}
+
+  /* ── Password modal ── */
+  .pwd-overlay { position: fixed; inset: 0; background: rgba(28,25,23,0.75); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(3px); }
+  .pwd-box { background: var(--warm-white); border-radius: 12px; width: 340px; padding: 28px; box-shadow: 0 24px 64px rgba(0,0,0,0.3); }
+  .pwd-title { font-family: "Playfair Display", serif; font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .pwd-subtitle { font-size: 12px; color: var(--ink-muted); margin-bottom: 20px; line-height: 1.5; }
+  .pwd-input-wrap { display: flex; gap: 8px; }
+  .pwd-input { flex: 1; padding: 9px 12px; border: 1px solid var(--border-strong); border-radius: 6px; font-family: inherit; font-size: 13px; color: var(--ink); outline: none; }
+  .pwd-input:focus { border-color: var(--accent); }
+  .pwd-input.error { border-color: var(--accent); background: var(--accent-light); }
+  .pwd-btn { padding: 9px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .pwd-btn:hover { background: var(--accent-mid); }
+  .pwd-error { font-size: 11px; color: var(--accent); margin-top: 8px; min-height: 16px; }
+  .pwd-lock { font-size: 32px; margin-bottom: 14px; }
 </style>
 </head>
 <body>
@@ -259,11 +273,64 @@ let editingId = null;
 let searchQ = '';
 let searchTimer = null;
 
+// ── Password ──
+let cookbookPassword = sessionStorage.getItem('cookbook-pwd') || '';
+let pendingAction = null;
+
+function requirePassword(action) {
+  if (cookbookPassword) { action(); return; }
+  pendingAction = action;
+  document.getElementById('pwd-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('pwd-input').focus(), 50);
+}
+
+function submitPassword() {
+  const pwd = document.getElementById('pwd-input').value;
+  if (!pwd) return;
+  // Test the password with a dummy request
+  fetch('/api/recipes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-cookbook-password': pwd },
+    body: JSON.stringify({ name: '__test__', category: 'test' })
+  }).then(async res => {
+    if (res.status === 401) {
+      document.getElementById('pwd-error').textContent = 'Incorrect password. Try again.';
+      document.getElementById('pwd-input').classList.add('error');
+      document.getElementById('pwd-input').value = '';
+      document.getElementById('pwd-input').focus();
+    } else {
+      // Password correct - delete the test recipe then proceed
+      const data = await res.json();
+      if (data.id) {
+        fetch('/api/recipes/' + data.id, {
+          method: 'DELETE',
+          headers: { 'x-cookbook-password': pwd }
+        });
+      }
+      cookbookPassword = pwd;
+      sessionStorage.setItem('cookbook-pwd', pwd);
+      document.getElementById('pwd-overlay').style.display = 'none';
+      document.getElementById('pwd-input').value = '';
+      document.getElementById('pwd-error').textContent = '';
+      document.getElementById('pwd-input').classList.remove('error');
+      if (pendingAction) { pendingAction(); pendingAction = null; }
+    }
+  }).catch(() => {
+    document.getElementById('pwd-error').textContent = 'Connection error. Try again.';
+  });
+}
+
 // ── API helpers ──
 async function api(method, path, body) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (cookbookPassword) opts.headers['x-cookbook-password'] = cookbookPassword;
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch('/api' + path, opts);
+  if (res.status === 401) {
+    cookbookPassword = '';
+    sessionStorage.removeItem('cookbook-pwd');
+    throw new Error('Password required');
+  }
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
@@ -504,9 +571,9 @@ function esc(s) {
 }
 
 // ── Event listeners ──
-document.getElementById('add-btn').addEventListener('click', openAdd);
-document.getElementById('edit-btn').addEventListener('click', openEdit);
-document.getElementById('delete-btn').addEventListener('click', deleteRecipe);
+document.getElementById('add-btn').addEventListener('click', () => requirePassword(openAdd));
+document.getElementById('edit-btn').addEventListener('click', () => requirePassword(openEdit));
+document.getElementById('delete-btn').addEventListener('click', () => requirePassword(deleteRecipe));
 document.getElementById('modal-close-btn').addEventListener('click', closeModal);
 document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
 document.getElementById('modal-save-btn').addEventListener('click', saveRecipe);
@@ -520,6 +587,35 @@ document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); }
 
 // ── Init ──
 loadRecipes();
+
+document.getElementById('pwd-submit-btn').addEventListener('click', submitPassword);
+document.getElementById('pwd-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') submitPassword();
+  if (e.key === 'Escape') {
+    document.getElementById('pwd-overlay').style.display = 'none';
+    pendingAction = null;
+  }
+});
+document.getElementById('pwd-overlay').addEventListener('click', function(e) {
+  if (e.target === this) {
+    this.style.display = 'none';
+    pendingAction = null;
+  }
+});
 </script>
+
+<div class="pwd-overlay" id="pwd-overlay" style="display:none">
+  <div class="pwd-box">
+    <div class="pwd-lock">&#x1F512;</div>
+    <div class="pwd-title">Family access only</div>
+    <div class="pwd-subtitle">Enter the family password to add, edit, or delete recipes.</div>
+    <div class="pwd-input-wrap">
+      <input class="pwd-input" type="password" id="pwd-input" placeholder="Password" />
+      <button class="pwd-btn" id="pwd-submit-btn">Enter</button>
+    </div>
+    <div class="pwd-error" id="pwd-error"></div>
+  </div>
+</div>
+
 </body>
 </html>
