@@ -18,7 +18,7 @@ const pool = new Pool({
 // ── Middleware ──
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+pp.use(express.static(__dirname));
 
 // ── Health check ──
 app.get('/api/health', async (req, res) => {
@@ -127,7 +127,7 @@ app.get('/api/intro', async (req, res) => {
 
 // ── Serve frontend for all other routes ──
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, () => {
