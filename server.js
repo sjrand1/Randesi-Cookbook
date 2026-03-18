@@ -219,7 +219,8 @@ app.get('*', (req, res) => {
 });
 
 // ── Start ──
-app.listen(PORT, async () => {
+// Listen immediately so Render detects the port, then seed in background
+app.listen(PORT, () => {
   console.log(`Greco Family Cookbook running on port ${PORT}`);
-  await setupDatabase();
+  setupDatabase().catch(err => console.error('Setup error:', err.message));
 });
