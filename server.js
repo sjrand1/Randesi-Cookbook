@@ -18,7 +18,7 @@ const pool = new Pool({
 // ── Middleware ──
 app.use(cors());
 app.use(express.json());
-pp.use(express.static(__dirname));
+app.use(express.static(__dirname));
 
 // ── Health check ──
 app.get('/api/health', async (req, res) => {
