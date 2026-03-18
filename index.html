@@ -102,6 +102,17 @@
   .btn-edit:hover { background: var(--ink-soft); }
   .btn-delete { background: white; color: var(--accent); border-color: var(--border-strong); }
   .btn-delete:hover { background: var(--accent-light); border-color: var(--accent); }
+  .btn-print { background: white; color: var(--ink-soft); border-color: var(--border-strong); }
+  .btn-print:hover { background: var(--cream); }
+
+  @media print {
+    .sidebar, .main, .detail-actions, .modal-overlay, .pwd-overlay { display: none !important; }
+    .detail { width: 100% !important; border: none !important; }
+    .detail-body { overflow: visible !important; }
+    .detail-hero { background: var(--ink) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: white !important; }
+    .app { height: auto !important; overflow: visible !important; }
+  }
 
   .modal-overlay { position: fixed; inset: 0; background: rgba(28,25,23,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; backdrop-filter: blur(2px); }
   .modal { background: var(--warm-white); border-radius: 12px; width: 480px; max-height: 85vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.3); }
@@ -186,6 +197,7 @@
     </div>
     <div class="detail-body" id="detail-body" style="display:none"></div>
     <div class="detail-actions" id="detail-actions" style="display:none">
+      <button class="btn btn-print" id="print-btn">&#x1F5A8; Print</button>
       <button class="btn btn-edit" id="edit-btn">Edit Recipe</button>
       <button class="btn btn-delete" id="delete-btn">Delete</button>
     </div>
@@ -565,12 +577,88 @@ async function deleteRecipe() {
   }
 }
 
+function printRecipe() {
+  const r = allRecipes.find(x => x.id === selectedId);
+  if (!r) return;
+
+  const ings = Array.isArray(r.ingredients) ? r.ingredients : [];
+  const steps = Array.isArray(r.steps) ? r.steps : [];
+
+  const win = window.open('', '_blank', 'width=700,height=900');
+  win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${r.name}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, serif; color: #1C1917; background: white; padding: 40px; max-width: 680px; margin: 0 auto; }
+  .header { border-bottom: 2px solid #1C1917; padding-bottom: 16px; margin-bottom: 24px; }
+  .book-name { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #78716C; margin-bottom: 8px; }
+  h1 { font-size: 28px; font-weight: normal; line-height: 1.2; margin-bottom: 10px; }
+  .meta { display: flex; gap: 20px; font-size: 13px; color: #44403C; flex-wrap: wrap; }
+  .meta span { display: flex; align-items: center; gap: 4px; }
+  .meta .dot { width: 4px; height: 4px; border-radius: 50%; background: #A8A29E; }
+  .source { font-size: 13px; color: #78716C; font-style: italic; margin-top: 6px; }
+  .note { background: #F7F0E4; border-left: 3px solid #B07D3A; padding: 10px 14px; margin: 16px 0; font-size: 13px; color: #44403C; line-height: 1.6; border-radius: 0 4px 4px 0; }
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 10px; font-weight: bold; letter-spacing: 0.14em; text-transform: uppercase; color: #A8A29E; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #E7E2D9; }
+  .ing-table { width: 100%; border-collapse: collapse; }
+  .ing-table tr { border-bottom: 1px solid #F0EDE8; }
+  .ing-table tr:last-child { border-bottom: none; }
+  .ing-table td { padding: 6px 0; font-size: 14px; vertical-align: top; }
+  .ing-table td:first-child { color: #78716C; width: 140px; font-size: 13px; padding-right: 16px; }
+  .steps-list { list-style: none; }
+  .steps-list li { display: flex; gap: 14px; padding: 8px 0; font-size: 14px; line-height: 1.6; color: #44403C; border-bottom: 1px solid #F0EDE8; }
+  .steps-list li:last-child { border-bottom: none; }
+  .step-num { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: #1C1917; color: white; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #E7E2D9; font-size: 11px; color: #A8A29E; text-align: center; }
+  @media print { body { padding: 20px; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="book-name">The Greco Family Cookbook</div>
+  <h1>${r.name}</h1>
+  <div class="meta">
+    ${r.category ? '<span>' + r.category + '</span>' : ''}
+    ${r.time_to_prepare && r.time_to_prepare !== '-' ? '<span><span class="dot"></span>' + r.time_to_prepare + '</span>' : ''}
+    ${r.serves ? '<span><span class="dot"></span>Serves ' + r.serves + '</span>' : ''}
+  </div>
+  ${r.submitted_by ? '<div class="source">Contributed by ' + r.submitted_by + '</div>' : ''}
+</div>
+
+${r.description ? '<div class="note">' + r.description + '</div>' : ''}
+
+${ings.length ? `<div class="section">
+  <div class="section-title">Ingredients</div>
+  <table class="ing-table">
+    ${ings.map(i => '<tr><td>' + i[0] + '</td><td>' + i[1] + '</td></tr>').join('')}
+  </table>
+</div>` : ''}
+
+${steps.length ? `<div class="section">
+  <div class="section-title">Instructions</div>
+  <ol class="steps-list">
+    ${steps.map((s, i) => '<li><span class="step-num">' + (i+1) + '</span><span>' + s + '</span></li>').join('')}
+  </ol>
+</div>` : ''}
+
+<div class="footer">The Greco Family Cookbook &mdash; grecofamilycookbook.com</div>
+</body>
+</html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 400);
+}
+
 function esc(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ── Event listeners ──
 document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('print-btn').addEventListener('click', printRecipe);
   document.getElementById('add-btn').addEventListener('click', () => requirePassword(openAdd));
   document.getElementById('edit-btn').addEventListener('click', () => requirePassword(openEdit));
   document.getElementById('delete-btn').addEventListener('click', () => requirePassword(deleteRecipe));
