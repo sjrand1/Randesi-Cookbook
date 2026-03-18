@@ -16,7 +16,6 @@ const pool = new Pool({
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname));
 
 // ── Auth middleware for write operations ──
 const COOKBOOK_PASSWORD = process.env.COOKBOOK_PASSWORD || 'greco1234';
@@ -213,7 +212,10 @@ app.get('/api/intro', async (req, res) => {
   }
 });
 
-// ── Serve frontend ──
+
+
+// ── Serve frontend (must come after all API routes) ──
+app.use(express.static(__dirname));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
