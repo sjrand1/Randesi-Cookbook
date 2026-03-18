@@ -285,38 +285,35 @@ function requirePassword(action) {
 }
 
 function submitPassword() {
-  const pwd = document.getElementById('pwd-input').value;
+  const pwd = document.getElementById('pwd-input').value.trim();
   if (!pwd) return;
-  // Test the password with a dummy request
-  fetch('/api/recipes', {
+  const errEl = document.getElementById('pwd-error');
+  const inputEl = document.getElementById('pwd-input');
+  errEl.textContent = '';
+  inputEl.classList.remove('error');
+
+  fetch('/api/auth', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-cookbook-password': pwd },
-    body: JSON.stringify({ name: '__test__', category: 'test' })
-  }).then(async res => {
-    if (res.status === 401) {
-      document.getElementById('pwd-error').textContent = 'Incorrect password. Try again.';
-      document.getElementById('pwd-input').classList.add('error');
-      document.getElementById('pwd-input').value = '';
-      document.getElementById('pwd-input').focus();
-    } else {
-      // Password correct - delete the test recipe then proceed
-      const data = await res.json();
-      if (data.id) {
-        fetch('/api/recipes/' + data.id, {
-          method: 'DELETE',
-          headers: { 'x-cookbook-password': pwd }
-        });
-      }
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pwd })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
       cookbookPassword = pwd;
       sessionStorage.setItem('cookbook-pwd', pwd);
       document.getElementById('pwd-overlay').style.display = 'none';
-      document.getElementById('pwd-input').value = '';
-      document.getElementById('pwd-error').textContent = '';
-      document.getElementById('pwd-input').classList.remove('error');
+      inputEl.value = '';
       if (pendingAction) { pendingAction(); pendingAction = null; }
+    } else {
+      errEl.textContent = 'Incorrect password. Try again.';
+      inputEl.classList.add('error');
+      inputEl.value = '';
+      inputEl.focus();
     }
-  }).catch(() => {
-    document.getElementById('pwd-error').textContent = 'Connection error. Try again.';
+  })
+  .catch(() => {
+    errEl.textContent = 'Connection error. Try again.';
   });
 }
 
