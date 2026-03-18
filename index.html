@@ -1,1 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Greco Family Cookbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FAF7F2; --warm-white: #FFFEF9; --ink: #1C1917; --ink-soft: #44403C;
+    --ink-muted: #78716C; --ink-faint: #A8A29E; --border: #E7E2D9; --border-strong: #C9C0B5;
+    --accent: #8B3A2A; --accent-light: #F5EBE8; --accent-mid: #C25B45;
+    --gold: #B07D3A; --gold-light: #F7F0E4; --teal: #2C6E6A; --teal-light: #E6F2F1;
+    --intro-color: #3D5A80; --intro-light: #E8EEF4;
+    --sidebar-w: 260px; --detail-w: 480px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--cream); color: var(--ink); font-family: "DM Sans", sans-serif; font-size: 14px; }
+  .app { display: flex; height: 100vh; overflow: hidden; }
 
+  .sidebar { width: var(--sidebar-w); background: var(--ink); color: var(--cream); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+  .sidebar-brand { padding: 28px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .sidebar-brand .script { font-family: "Playfair Display", serif; font-style: italic; font-size: 22px; color: #D4A96A; line-height: 1; }
+  .sidebar-brand .subtitle { font-size: 10px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-top: 4px; }
+  .sidebar-brand .count { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .search-box { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .search-box input { width: 100%; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 7px 10px; font-size: 12px; font-family: inherit; color: var(--cream); outline: none; transition: border-color 0.15s; }
+  .search-box input::placeholder { color: rgba(255,255,255,0.3); }
+  .search-box input:focus { border-color: rgba(212,169,106,0.5); }
+  .cat-nav { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .cat-nav::-webkit-scrollbar { width: 3px; }
+  .cat-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  .nav-section-label { padding: 10px 20px 4px; font-size: 9px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.2); }
+  .nav-divider { margin: 6px 16px; border: none; border-top: 1px solid rgba(255,255,255,0.08); }
+  .cat-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 20px; background: none; border: none; color: rgba(255,255,255,0.5); font-family: inherit; font-size: 12.5px; font-weight: 400; cursor: pointer; text-align: left; border-left: 2px solid transparent; transition: all 0.15s; }
+  .cat-btn:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.04); }
+  .cat-btn.active { color: #D4A96A; border-left-color: #D4A96A; background: rgba(212,169,106,0.07); font-weight: 500; }
+  .cat-btn.intro-btn.active { color: #93B4D4; border-left-color: #93B4D4; background: rgba(147,180,212,0.07); }
+  .cat-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .cat-count { margin-left: auto; font-size: 10px; opacity: 0.4; }
+  .cat-btn.active .cat-count { opacity: 0.7; }
+
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--warm-white); }
+  .main-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--warm-white); }
+  .main-header-title { font-size: 13px; color: var(--ink-muted); flex: 1; font-weight: 400; }
+  .main-header-title strong { color: var(--ink); font-weight: 500; }
+  .status-msg { font-size: 11px; font-weight: 500; transition: opacity 0.3s; }
+  .status-msg.saving { color: var(--ink-faint); }
+  .status-msg.saved { color: var(--teal); }
+  .status-msg.error { color: var(--accent); }
+  .btn-add { display: flex; align-items: center; gap: 5px; padding: 7px 14px; background: var(--accent); color: white; border: none; border-radius: 6px; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+  .btn-add:hover { background: var(--accent-mid); }
+  .btn-add.hidden { display: none; }
+  .recipe-list { flex: 1; overflow-y: auto; }
+  .recipe-list::-webkit-scrollbar { width: 4px; }
+  .recipe-list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+  .recipe-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+  .recipe-row:hover { background: var(--cream); }
+  .recipe-row.selected { background: var(--accent-light); border-left: 3px solid var(--accent); padding-left: 17px; }
+  .recipe-row.intro-row.selected { background: var(--intro-light); border-left-color: var(--intro-color); }
+  .recipe-icon { font-size: 20px; flex-shrink: 0; width: 32px; text-align: center; }
+  .recipe-info { flex: 1; min-width: 0; }
+  .recipe-name { font-size: 13px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .recipe-meta { font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
+  .pill { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; color: var(--ink-faint); font-size: 13px; gap: 8px; }
+  .loading { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--ink-faint); font-size: 13px; gap: 10px; }
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .detail { width: var(--detail-w); border-left: 1px solid var(--border); display: flex; flex-direction: column; background: var(--warm-white); flex-shrink: 0; }
+  .detail-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--ink-faint); gap: 12px; padding: 32px; text-align: center; }
+  .detail-empty-icon { font-size: 48px; opacity: 0.2; }
+  .detail-empty p { font-size: 12px; line-height: 1.6; }
+  .detail-body { flex: 1; overflow-y: auto; }
+  .detail-body::-webkit-scrollbar { width: 4px; }
+  .detail-body::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+  .detail-hero { background: var(--ink); color: var(--cream); padding: 24px 20px 20px; }
+  .detail-hero.intro-hero { background: var(--intro-color); }
+  .detail-hero-icon { font-size: 36px; margin-bottom: 10px; }
+  .detail-hero-name { font-family: "Playfair Display", serif; font-size: 20px; font-weight: 600; line-height: 1.2; margin-bottom: 10px; }
+  .detail-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .detail-content { padding: 18px 20px; }
+  .detail-section { margin-bottom: 18px; }
+  .detail-section-label { font-size: 9px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 8px; }
+  .detail-source { font-size: 12px; color: var(--ink-soft); font-style: italic; }
+  .detail-notes { font-size: 12px; color: var(--ink-soft); line-height: 1.6; padding: 10px 12px; background: var(--gold-light); border-radius: 6px; border-left: 2px solid var(--gold); }
+  .intro-prose { font-size: 13px; color: var(--ink-soft); line-height: 1.8; white-space: pre-wrap; }
+  .intro-page-tag { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 20px; background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.8); font-weight: 500; margin-bottom: 10px; }
+  .ing-list { list-style: none; }
+  .ing-row { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .ing-row:last-child { border-bottom: none; }
+  .ing-qty { color: var(--ink-faint); min-width: 80px; flex-shrink: 0; font-size: 11px; }
+  .step-list { list-style: none; }
+  .step-item { display: flex; gap: 10px; padding: 7px 0; font-size: 12px; color: var(--ink-soft); line-height: 1.6; border-bottom: 1px solid var(--border); }
+  .step-item:last-child { border-bottom: none; }
+  .step-num { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: white; font-size: 10px; font-weight: 500; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .detail-actions { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .btn { padding: 8px 16px; border-radius: 6px; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; }
+  .btn-edit { flex: 1; background: var(--ink); color: white; border-color: var(--ink); }
+  .btn-edit:hover { background: var(--ink-soft); }
+  .btn-delete { background: white; color: var(--accent); border-color: var(--border-strong); }
+  .btn-delete:hover { background: var(--accent-light); border-color: var(--accent); }
+  .btn-print { background: white; color: var(--ink-soft); border-color: var(--border-strong); }
+  .btn-print:hover { background: var(--cream); }
+
+  @media print {
+    .sidebar, .main, .detail-actions, .modal-overlay, .pwd-overlay { display: none !important; }
+    .detail { width: 100% !important; border: none !important; }
+    .detail-body { overflow: visible !important; }
+    .detail-hero { background: var(--ink) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: white !important; }
+    .app { height: auto !important; overflow: visible !important; }
+  }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(28,25,23,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; backdrop-filter: blur(2px); }
+  .modal { background: var(--warm-white); border-radius: 12px; width: 480px; max-height: 85vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.3); }
+  .modal-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-family: "Playfair Display", serif; font-size: 18px; font-weight: 600; }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--ink-muted); padding: 2px 6px; border-radius: 4px; }
+  .modal-close:hover { background: var(--border); }
+  .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-label { font-size: 11px; font-weight: 500; color: var(--ink-soft); letter-spacing: 0.04em; }
+  .form-hint { font-size: 10px; color: var(--ink-faint); }
+  .form-input, .form-select, .form-textarea { padding: 8px 11px; border: 1px solid var(--border-strong); border-radius: 6px; font-family: inherit; font-size: 13px; color: var(--ink); background: white; outline: none; transition: border-color 0.15s; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+  .form-textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
+  .form-row { display: flex; gap: 12px; }
+  .form-row .form-group { flex: 1; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+  .btn-cancel { background: white; color: var(--ink-soft); border: 1px solid var(--border-strong); }
+  .btn-cancel:hover { background: var(--cream); }
+  .btn-save { background: var(--accent); color: white; border: 1px solid var(--accent); }
+  .btn-save:hover { background: var(--accent-mid); }
+
+  .pill-Appetizers{background:#FEF3C7;color:#92400E} .pill-Soups{background:#D1FAE5;color:#065F46}
+  .pill-Salads{background:#DCFCE7;color:#14532D} .pill-Pasta{background:#DBEAFE;color:#1E40AF}
+  .pill-Meat{background:#FEE2E2;color:#991B1B} .pill-Fish{background:#E0F2FE;color:#075985}
+  .pill-Non-Meat{background:#F0FDF4;color:#166534} .pill-Desserts{background:#FCE7F3;color:#9D174D}
+  .pill-Miscellaneous{background:#EDE9FE;color:#5B21B6} .pill-Introduction{background:var(--intro-light);color:var(--intro-color)}
+  .pill-time{background:var(--gold-light);color:var(--gold)} .pill-serves{background:var(--teal-light);color:var(--teal)}
+  .dot-Appetizers{background:#F59E0B} .dot-Soups{background:#10B981} .dot-Salads{background:#34D399}
+  .dot-Pasta{background:#3B82F6} .dot-Meat{background:#EF4444} .dot-Fish{background:#0EA5E9}
+  .dot-Non-Meat{background:#22C55E} .dot-Desserts{background:#EC4899} .dot-Miscellaneous{background:#8B5CF6}
+  .dot-Introduction{background:#93B4D4} .dot-all{background:rgba(255,255,255,0.2)}
+
+  @media(max-width:900px){:root{--detail-w:260px}}
+  @media(max-width:700px){.detail{display:none}:root{--sidebar-w:180px}}
+  @media(max-width:500px){.sidebar{display:none}}
+
+  /* ── Password modal ── */
+  .pwd-overlay { position: fixed; inset: 0; background: rgba(28,25,23,0.75); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(3px); }
+  .pwd-box { background: var(--warm-white); border-radius: 12px; width: 340px; padding: 28px; box-shadow: 0 24px 64px rgba(0,0,0,0.3); }
+  .pwd-title { font-family: "Playfair Display", serif; font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .pwd-subtitle { font-size: 12px; color: var(--ink-muted); margin-bottom: 20px; line-height: 1.5; }
+  .pwd-input-wrap { display: flex; gap: 8px; }
+  .pwd-input { flex: 1; padding: 9px 12px; border: 1px solid var(--border-strong); border-radius: 6px; font-family: inherit; font-size: 13px; color: var(--ink); outline: none; }
+  .pwd-input:focus { border-color: var(--accent); }
+  .pwd-input.error { border-color: var(--accent); background: var(--accent-light); }
+  .pwd-btn { padding: 9px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .pwd-btn:hover { background: var(--accent-mid); }
+  .pwd-error { font-size: 11px; color: var(--accent); margin-top: 8px; min-height: 16px; }
+  .pwd-lock { font-size: 32px; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="script">Greco Family</div>
+      <div class="subtitle">Cookbook</div>
+      <div class="count" id="total-count">Loading...</div>
+    </div>
+    <div class="search-box">
+      <input type="text" id="search" placeholder="Search recipes..." autocomplete="off" />
+    </div>
+    <nav class="cat-nav" id="cat-nav"></nav>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div class="main-header-title" id="list-label">Loading...</div>
+      <span class="status-msg" id="status-msg"></span>
+      <button class="btn-add" id="add-btn">+ Add Recipe</button>
+    </div>
+    <div class="recipe-list" id="recipe-list">
+      <div class="loading"><div class="spinner"></div> Loading recipes...</div>
+    </div>
+  </main>
+
+  <aside class="detail">
+    <div class="detail-empty" id="detail-empty">
+      <div class="detail-empty-icon">&#x1F374;</div>
+      <p>Select a recipe or introduction section to read</p>
+    </div>
+    <div class="detail-body" id="detail-body" style="display:none"></div>
+    <div class="detail-actions" id="detail-actions" style="display:none">
+      <button class="btn btn-print" id="print-btn">&#x1F5A8; Print</button>
+      <button class="btn btn-edit" id="edit-btn">Edit Recipe</button>
+      <button class="btn btn-delete" id="delete-btn">Delete</button>
+    </div>
+  </aside>
+</div>
+
+<div class="modal-overlay" id="modal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">New Recipe</div>
+      <button class="modal-close" id="modal-close-btn">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group" style="flex:2">
+          <label class="form-label">Recipe Name</label>
+          <input class="form-input" id="f-name" placeholder="e.g. Chicken Piccata" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="f-cat">
+            <option>Appetizers</option><option>Soups</option><option>Salads</option>
+            <option>Pasta</option><option>Meat</option><option>Fish</option>
+            <option>Non-Meat</option><option>Desserts</option><option>Miscellaneous</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Submitted by</label>
+          <input class="form-input" id="f-by" placeholder="Contributor name" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Time</label>
+          <input class="form-input" id="f-time" placeholder="e.g. 45 min" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Serves</label>
+          <input class="form-input" id="f-serves" placeholder="e.g. 4-6" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes / Description</label>
+        <input class="form-input" id="f-desc" placeholder="Optional tip or note" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ingredients</label>
+        <span class="form-hint">One per line &mdash; quantity|ingredient &nbsp;(e.g. <code>1 cup|Flour</code>)</span>
+        <textarea class="form-textarea" id="f-ings" style="min-height:100px" placeholder="1 lb.|Ground Beef&#10;2 cloves, minced|Garlic"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Instructions</label>
+        <span class="form-hint">One step per line</span>
+        <textarea class="form-textarea" id="f-steps" style="min-height:100px" placeholder="Preheat oven to 350 degrees.&#10;Brown the meat with onion and garlic."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" id="modal-cancel-btn">Cancel</button>
+      <button class="btn btn-save" id="modal-save-btn">Add Recipe</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const INTRO_PAGES = [{"page":"i","title":"Title Page","content":"The Greco  \nFamily  \n\u201cCooks\u201dBook  \n \n\u2026\u2026\u2026..plus fond memories of food,  \nfun, \nand family customs \n \n \n \nCompiled and written by \nDiane Randesi \nDrawings by Steve Randesi"},{"page":"ii","title":"Publication Info","content":"ii\n \n \n \n \n \n \n \nDefinitions (shown in boxes) obtained, in part, from www.cooking.com. \nPrinting and binding  by my friends Dave, Peggy, and Rick Eklund of Advantage Grafix (a family-\nowned printing business) in San Jose, CA \n \nPrinted in the United States of America \n December, 1998 \n               Revised:  August, 1999  \nAdditional copies of this book are available for $12 each (plus $4 for first-class shipping) from: \nDiane Randesi \n1235 Laurie Avenue \nSan Jose, CA   95125 \n408/266-6285 \nfax: 408/446-9134 (Attention: Diane) \nemail:  drandesi@sprynet.com"},{"page":"iii","title":"Contents","content":"iii\n \nCONTENTS \n \n \nAbout the Author   iv \n \nDedication/Acknowledgements v \n \nThe Tree       vi \n \nPreface       vii \n \nAbout the Main Characters    ix \n \n1:   Appetizer       1 \n \n2:   Soup        9 \n \n3:   Salad       19 \n \nEaster Season/Lent     27 \n \n4:   Pasta     31 \n \n5:    Meat and Poultry      51 \n \n6:   Non-Meat    73 \n \n7:   Fish      89 \n \nChristmas Season/Advent     95 \n \n8:   Dessert       99 \n \n9:   Miscellaneous      157 \n  \n Glossary of Terms   165 \n \nIndex     167"},{"page":"iv","title":"About the Author","content":"iv\n \nAbout the Author \nI was born in Johnson City, New York, on January 21, 1947.  I grew up in \nEndicott, New York, the home of the Endicott Johnson Shoe Company and \nInternational Business Machines (IBM).  I was the middle of three children.  My \nrecollection of my childhood is memories centered around family and family \nevents, such as birthdays and holidays.  Most of the activities in my early years \ncentered around Brownies and Girl Scouts, which were associated with the \nCatholic Church.  Nine months after I was born, my husband, Steve, was born in \nthe same hospital.  We discovered last year that our birth certificates look the \nsame and are even signed by the same person!  It must have been destiny because \nwe met in Kindergarten, were childhood sweethearts, attended the 9th and 12th \ngrade proms together, and then married in 1969 in Saint Anthony\u2019s Church.  In \n1971, we, along with my brother John and his wife, Gail, embarked on an \nadventure that took us on a camping trip across the country where we would end \nup in California to experience life in another part of the United States.  We \nintended it to be for one year, but that year extended to 27 years.  We settled in \nNorthern California; John and his family settled in Southern California; my \nyounger brother, David, followed a few years later and also lives with his family \nin Southern California.  My parents moved from Poughkeepsie, New York to \nNorthern California in 1978.   \nSteve and I have a wonderful family\uf8e7 Karen, age 21, Jeff, age 20, and Joey, age \n17.  Karen is teaching 2nd grade as part of a service project in Mobile, Alabama, \nJeff is attending college at Cal Poly, San Luis Obispo, California, and Joey is a \nsenior at Bellarmine College Prep High School in San Jose.  They are terrific \npeople, and we are enormously proud of each one of them.  Steve has been part \nowner of his own business since 1979, where I work when it fits into my \nschedule!  (It\u2019s great to be in with the boss!)  I spend time volunteering when I\u2019m \nnot working, and I enjoy doing projects using my hands.  My adult life has been \npretty much centered around the children, and now that we are soon to be \u201calone \nin the nest\u201d (except for our beagle, Mocha), I need to \u201cget a life.\u201d  When we \nretire, we would like to travel and do work in the service of others.  Cooking is \none of my least favorite things to do.  I\u2019d much rather compile and write a \ncookbook than actually cook, but I\u2019m starting to get inspired."},{"page":"v","title":"Dedication & Acknowledgements","content":"v\n \nThe Randesi Family: From left to right, Joey, Karen, Steve, Diane and Jeff \n \n         DEDICATION/ACKNOWLEDGEMENTS \n \nDedicated to my husband, Steve, who encouraged me to do this book\u2014 who did the \nillustrations for it\u2014 and who had to listen tirelessly at every step of the way\u2014 he is \nalways there and encouraging me no matter what I want to pursue.  I have loved and \nappreciated him for every one of the almost 30 years we\u2019ve been married. \n \n\u2026And to my children, Karen, Jeff and Joey, because I always wanted to dedicate my first \nbook to my children.  I\u2019m working on a second book designed just for them, with love.  I \nthought that it would be my first book.  This endeavor came first because it was easier.  \nThe next one will take longer\u2014 maybe forever.  \n \nThank you to my cousin, Maryann (English) Haggerty, and to my good friends, \nCassandra Dotzler, Linda Snider, and Skip Vaccarello, who agreed to proofread this book \nwith an independent, critical eye, and whose corrections, suggestions, and comments I \nappreciate. \n \nRefer to \u201cThe Tree\u201d (page vi) if you are lost as to who belongs to which family.  I \npurposely only included the family through my first cousins, once removed.  These are \nthe family members with whom I am closest and with whom I corresponded in order to \ncompile the recipes.  Many of the children of the Roma family have children of their \nown.  To those children, I hope one of you will be inspired to write The Greco Family \n\u201cCooks\u201d Book Volume II sometime in the future, and perhaps start where I left off."},{"page":"vi","title":"The Family Tree","content":"(The Family Tree \u2014 a visual diagram of the Greco family \u2014 appears on this page in the original hardcopy edition.)"},{"page":"vii\u2013viii","title":"Preface","content":"vii\n \nPREFACE \n \nI have long thought about how important family has been (and is) throughout my life.  I \nfind myself relating the same stories over and over again as circumstances arise.  I also \nhave been feeling the need to preserve some of the traditions of MY past because I fear \nthey might be lost.  Although I try to continue doing the things I remembered and \nenjoyed the most, times and circumstances change, and we must make our own traditions \nin our own families.  In addition, some of us live in different parts of the country, which \nchanges what is customary, such as getting together on holidays, birthdays, etc.  We live \nin California, and my children have been brought up in a much different environment.  \nWhereas we were from a small town where most everyone we knew was Catholic, and a \nlot of them were Italian, my children have grown up where there are few Italians and \nwhere they have been exposed to a wide variety of religious beliefs.  In addition, many of \nus (not me) married into families with different backgrounds that have completely \ndifferent customs and, of course, must share both in bringing up their children.  \nTherefore, it occurs to me that as we each make our own customs in our own families, \neventually some of the past could completely disappear except for what has been written \ndown.  Therefore, this is my attempt at keeping these traditions alive.  The accounts of \nthe family and the holidays (p. 27 and p. 95) are written from MY perspective as I \nremember them when I was a little girl.  Some of you will remember things just as I have \n(especially those closest in age to me), but some of you will wonder, where did she get \nthat from?  Some of you will no doubt, remember more and different things and could \nprobably add your own memories.  \n \nThis is the time to state some disclaimers.  Some recipes may be \u201coriginals,\u201d but they \nare mostly just \u201cfavorite\u201d recipes of different family members.  I\u2019ve tried to check \nspellings of Italian words to the best of my ability.  Also, I\u2019ve tried to check that the \ningredients match the information in the descriptions.  I can\u2019t be sure I\u2019ve caught \neverything.  I can tell you, it was a challenge to write and rewrite some of the \ndescriptions because I was given recipes that included phrases like \u201ca little pepper,\u201d a \n\u201chandful of breadcrumbs,\u201d \u201cwork the dough until it is medium\u201d, \u201cit\u2019s a feeling you get \nwhen it\u2019s just right,\u201d \u201cuse as much as needed,\u201d and \u201cyou can just tell when you\u2019ve added \nenough.\u201d  In some cases, I had to keep the recipes just the way they were.  You\u2019ll figure it \nout, if you are brave enough to try some of them.  Then, you\u2019ll know what that \u201camount\u201d \nor \u201cfeeling\u201d is.  It\u2019s empowering!   \n \nThe pronunciation of the Italian words are the way I remember my family saying them\u2014\nthey\u2019re not necessarily \u201ccorrect Italian\u201d, but it\u2019s the dialect they spoke, and the way I \nwant to remember them.  I apologize for any mistakes in recipes\u2014 I tried to understand \nthem and state them the way I understood them.  If you have a question on anything, at\n\nviii\n \nleast you know who to call\u2014 (not me!), but rather the \u201csource.\u201d  Preserving the past is \none reason for writing the book, but the main reason is to give tribute to the Greco \nfamily\uf8e7 my aunts and uncle who have graced the family with many, many good meals to \ngo along with good times and wonderful memories.  The family members who still live in \nEndicott get together often for coffee, birthdays, weddings, anniversaries, communions, \nconfirmations, whatever.  When I\u2019m with them, I realize how important they have been in \nmy life, and how many of the things they said and did have shaped my life.  Many of the \nactivities and traditions I\u2019ve had growing up in an Italian-American family revolve \naround food (for better or for worse).  This book is my attempt to capture a collection of \ntheir recipes to remind you and me, forever, of the wonderful, nurturing family we are.   \n \nThe journey has been better than I imagined.  I have corresponded with the entire family, \ntalked to cousins on the phone, and sent emails back and forth frequently.  None of it was \ndifficult; it was completely natural\u2014 that\u2019s family\u2014 when you can go without seeing or \ntalking to each other for a long time, but when you do, it\u2019s like yesterday\u2014 no barriers, \ncomplete trust, no need to impress or pretend.  Wouldn\u2019t it be nice to treat everyone like \n\u201cfamily\u201d?  Page vi will help you keep everyone straight.  The younger members of the \nfamily may need to refer to it when they see a recipe and don\u2019t recognize the name! \n \nFor the rare readers of this book who are not members of our family, I have made \nreferences to purchase certain ingredients at Jim Roma\u2019s Bakery.  Jim Roma is my first \ncousin, who owns and operates a very popular bakery in Endicott, New York.  Actually, \nanyone living in or around Endicott will know that you can purchase delicious bread, \nsandwiches, pizza, cookies, etc. at that bakery/restaurant.  I think when my Uncle Carl \nand Aunt Anna owned the bakery, they sold mostly bread and dough, but Jim has \nexpanded it to include much more.  Jim has employed practically every family member \nwho wanted a job, at one time or another, while they were growing up.  \n \nI, in no way, intended to leave out the men who, of course, play a major role in the \nfamily.  I could say more about my dad, John Dellos, and my uncles, Carl Roma, Nick \nEnglish, Louie DiFulvio, and Joe Pisani.  I could definitely say more about my husband, \nSteve, my children, my brothers and their wives, and my cousins who married into the \nfamily.  I also have equally fond memories of my dad\u2019s side of the family (the Dellos') \nand my husband\u2019s side of our family (the Randesis), but those would all be different \nbooks!  I had to draw the line somewhere and decided to keep it to the Grecos as much  \nas possible.  Sorry if I offend anyone.  That\u2019s me\uf8e7 in the words of my cousin\uf8e7  a \n\u201crecovering pleaser\u201d"},{"page":"ix\u2013xviii","title":"About the Main Characters","content":"ix \n \n. \nABOUT THE MAIN CHARACTERS \n \nThis family history begins with Grandma and Grandpa Greco.  They were married in the \nAbruzzi region of Italy in 1903.  Together, they had seven children.  The oldest of the \ngirls was Aunt Anna, followed by Aunt Minnie, Aunt Kay, Aunt Julia, my mother \n(Angie) and Aunt Lily.  The one boy (who must have been spoiled with all those sisters), \nUncle Sammy, was born after Aunt Julia and before my mother.  \n \n  \n  \n \nThe oldest children, Aunt Anna and Aunt Minnie (Domenica), were born in Italy. \nGrandpa came to America with Grandma\u2019s brother, Nick, and lived in New York City for \nfive years.  He returned to Italy for a short time, then revisited the United States to make \narrangements for Grandma and their two girls to join him, which they did in 1911.  Upon \ntheir return, however, they settled in Mt. Pocono, Pennsylvania because they felt it was a \nbetter place to raise a family.  (My great Uncle Nick remained in New York City to raise \nhis family\u2014  See my NewYork Cousin Millie\u2019s recipe on p. 102).  In America, Grandpa \nworked for the railroad.  Grandma was a \u201cstay-at-home\u201d mom. \nProvinces of Italy: \n \nA  Aosta Valley \nB  Piedmont \nC  Lombardy \nD  Trentino-Alto   \n     Adige \nE  Veneto \nF  Friulli-Venetia julia \nG  Liguria \nH  Emilia-Romagna \nI  Tuscany \nJ  The Marches \nK  Latium \nL  Umbria \nM Abruzzi \nN  Campania \nO  Molise \nP  Apulia \nQ  Basilicata \nR  Calabria \nS  Sicily \nT  Sardinia\n\nx \n \n \n \nGrandma (Maria) and Grandpa (Dominic) Greco \n \n \nAunt Julia, Aunt Kay (Catherine), Uncle Sam, and my mother, Angie, were born in Mt. \nPocono.  My Uncle Sam likes to boast that he was born in \u201cParadise\u201d, Pennsylvania.   \nAfter 11 years (in 1923), they migrated to Endicott, New York where they bought a \nhouse on Odell Avenue.  Aunt Lily (Lillian) was born in that very home on Odell Avenue \nwhere my Aunt Julia lives today.  My Grandpa Greco died of cancer when he was only \n57 years old, leaving Grandma to raise a family of six girls and one boy. The youngest, \nAunt Lily, was only 13 years old when Grandpa Greco died.\n\nxi \n \nGrandma Greco at her 75th Birthday \n \nGrandma Greco was born in 1882.  I remember her from a very early age.  It was \ncommon for my mother to take us for a walk from 31 Odell Avenue, where we lived, to \n319 Odell Avenue where Grandma Greco lived.  Many of our evenings, especially in the \nsummertime, were spent on the porch at Grandma Greco\u2019s house.  There were always \npeople there, many times one or more of my aunts and cousins, but usually Grandma and \nAunt Julia who lived there, too.  I remember sitting on the porch eating tart green apples \nfrom the tree out back.  They were small apples, but not so small to justify the large \namount we ate, while we passed around the salt shaker after every bite.  There were never \nenough salt shakers!  Grandma would be on the rocking chair listening to the \nconversation and reminding us how sick we could get if we ate too many apples!   \nI remember her combing her very long white hair.  Unless you saw her combing it, you\u2019d \nnever know how long it was because she wore it in a bun at the nape of her neck.  She \nalways wanted you to try some of her canned fruit, or something from her garden, of \nwhich she was so proud.  She didn\u2019t speak much English.  She would ask me questions in \nItalian, and I would answer to what I thought she asked.  I only knew a few phrases in \nItalian, like \u201cdough-sta-ma-ma?\u201d (Where\u2019s your Mother?), to which I always answered, \n\u201cla goz\u201d (home) because I wouldn\u2019t have known how to say anything else!  She would \nget irritated that I often answered to a different question than she asked.  Mostly we \ncommunicated by just smiling, shaking heads, or shrugging shoulders.  She always took\n\nxii \n \nme out back to show me something in her garden or to give me something from the \ngarden to take home.  She liked it when you ate her canned fruit and expressed approval.   \n \nOnce she sent me to Roma\u2019s Bakery to buy a loaf of dough.  On the way back, I was \nswinging the bag, and the dough flew out of its paper bag into the bushes.  I tried to \nretrieve as much of the dough as possible, picking out the pebbles that it picked up when \nit landed.  I returned with a very small loaf of dough and a hole in the bag.  Grandma \nseemed to be asking me a lot of questions in Italian in a loud voice\u2014 she was definitely \nupset, but I pretended I had no idea what she was saying.  I really did feel badly, but \ndidn\u2019t know how to explain.  She threw her hands up in disgust and said, \u201cva-teen-a-va\u201d.  \nI think that meant \u201cget out of here\u201d!   \n \nGrandma liked to visit with her neighbors.  They would either walk to each others\u2019 \nhouses and sit on the porch, or talk across the lawn, each sitting on their own porch.  The \nnext-door neighbor would call out, \u201cMod-e\u201d (Maria), and Grandma would go outside and \ntalk for a while. (I think they had phones then, but they\u2019d rather shout out for each other \nand talk in person, I guess.)  Grandma was very kind.  She taught me how to use her \nsewing machine, which accelerated by footpower.  I lived with Grandma for one summer \nafter high school, and I wished very much that I knew more of the Italian language so that \nI could communicate better.  She understood English, I think, but she didn\u2019t respond in \nEnglish.   \n \nAt one time or another, family members would return to live (temporarily) at Grandma\u2019s \nhouse.  My mother lived there with my brother, John, while my father was in the service.  \nAunt Kay and her family lived there for a time; Aunt Lily and her family did also.  That \nhouse on 319 Odell Avenue continues through the generations to be available to family.  \nAunt Julia, who remodeled the downstairs and lives there now, has rented the upstairs out \nto several members of the family at one time or another.  In fact, my cousin, Mary Beth, \nwho lived in the upstairs apartment for a time with her family, converted one bedroom \ninto a nursery for her first child, Amy\uf8e7 the very bedroom where Mary Beth\u2019s mother, \nAunt Lily (Amy\u2019s grandma), was born!   \n \nGrandma\u2019s house was (and still is) a gathering place for all the family and their friends.  \nIt was also the place we gathered after Sunday mass.  St. Anthony\u2019s Church was right \ndown the street, and it was natural to go to Grandma\u2019s after Sunday morning mass.  The \ncoffee was on all morning at her house\u2014 the smell was of spaghetti sauce, which was \nalways cooking on the stove to be eaten around noon, by anyone who was there.  \nGrandma\u2019s house was also the gathering place on Christmas Eve for many years, where \nthe families of all the Greco children ate and exchanged gifts before going to Midnight \nMass.  Grandma was 89 years old when she died.\n\nxiii \n \nAll of the aunts\u2019 children (the entire family of first cousins listed on page vi, except Joey \nPisani,) were born in Endicott or in the hospital in nearby Johnson City.  Joey was born in \nCanton, Ohio.  In Endicott, we all lived within a few blocks of each other.  Aunt Lily \nmoved to Ohio for a short time, but later moved back to Endicott where she and her \nfamily live today.  Uncle Sammy moved his family to Southern California when his \nyoungest twins were about 7 years old.  He was really the first to venture out and away.  \nMy mother (Angie) and father lived in Poughkeepsie, N.Y. for a while, then moved to \nNorthern California to live closer to their children and grandchildren. \n \nThe Greco family members are positive, happy, unpretentious people.  I like to be around \nthem.  When the sisters are together, they giggle a lot.  They have always depended on \neach other for everyday support.  Profiled individually: \n\u2014  \nAunt Anna Roma lived a few blocks from Grandma \nGreco on Oak Hill Avenue.  I remember walking \nback and forth to each house.  Her children were \nolder than I was, so when we were at her home, I \nenjoyed watching teenagers coming and going\u2014 it \nwas a very different scene than my own home \nexperience.  She and my Uncle Carl owned Roma's \nBakery, which was also on Oak Hill Avenue.  \nAlmost daily, I would walk to the bakery to buy \nbread or dough.  I was so proud that our family \nowned a bakery.  A baby picture of their first \ngranddaughter (my cousin Yvonne) was part of the \nadvertisement on the wrapper of the Italian white \nbread that they sold.  How famous we felt!  Aunt \nAnna died of cancer when I was 12 years old.  Her \nfuneral was the first I had ever been part of.  There \nwere hundreds of people every day that came to see \nmy aunt at the funeral parlor.  The receiving line was \nlong.  I said a lot of rosaries during those three days \nof the wake and funeral.  It left a very strong \nmemory with me.  I\u2019ve been to very few funerals \nsince.  Aunt Anna was only 56 when she passed \naway.  Her daughter, Mana, still lives in the brick \nhouse on Oak Hill Avenue that I remember so well.  \n \n \n \n                Aunt Anna\n\nxiv \n \nAunt Minnie DiFulvio  (Her real name is Domenica, which means Sunday.)  I always \nthought it was strange to name your child \u201cSunday\", but it\u2019s a common Italian name. \nSince her daughter, Ann Marie, is my age, I spent a lot of time at the DiFulvio\u2019s.  I \nremember Uncle Louie playing the accordion.  I spent many overnights and happy times \nat their house.  I thought of them as living \u201cin the country\u201d because their home was not in \nthe few blocks where the rest of the family lived.  Instead, it was about \u00bd mile away, up \nwhat I thought was a huge hill surrounded by a lot of land.  They were also the only \nfamily with a dog (Tippy).  I loved being at Aunt Minnie\u2019s.  She worked in the Endicott \nJohnson shoe factory\u2014 I thought it was cool that she was a \u201cworking woman\u201d.  I\u2019m told \nthat all the sisters worked, but for some reason, I only remember Aunt Minnie and Aunt \nJulia working outside the home.  Maybe because of it, I always thought Aunt Minnie and \nUncle Louie were more relaxed about rules, etc.  I always felt a little more freedom there.  \nAunt Minnie is still very much \u201cwith it\u201d.  She is an amazing 87 years old.  Like the \nothers, she always greets you with a nice smile, and never has a complaint about \nanything!  The summer before last, we had a \u201cladies only\u201d reunion in Boston (p. xvi).  \nAunt Minnie easily kept up with the youngest of us, as we walked and talked around \nBoston on an incredible weekend of fun and laughter.  Aunt Minnie still lives in the same \nhouse on Milan Avenue with her son, Louie, and his family. \n \n \nFrom left to right: Aunt Lily, Aunt Julia, Aunt Minnie, Aunt Kay & Mom (Angie) in 1980\n\nxv \n \nAunt Kay English (Her real name is Catherine.)  Because I was working in Endicott, and \nmy parents lived in Poughkeepsie at the time, I lived with Aunt Kay for two years just \nbefore I got married.  We had coffee together every morning, and dinner together with \nUncle Nick almost every evening.  I loved Aunt Kay\u2019s mild, easy manner.  One was \nalways comfortable around her.  I loved that she worked at the hospital as a volunteer.  \nShe cooked simply, but it was always delicious, whether it was cooking what my Uncle \nNick had just brought home from a fishing trip or the usual macaroni dishes.  She had \nmacaroni with tomato sauce every Sunday afternoon for her family and for whomever \nelse might have been visiting.  She liked to make homemade macaroni like ravioli, and \nshe was good at it!  Aunt Kay\u2019s house was always open for coffee any time, and the \nsisters would alternate among each other\u2019s homes.  She passed away at age 72.  Her death \nwas a surprise to me.  She hadn\u2019t been sick.  My parents and I got on the first plane back \nto New York from California to attend her funeral.  As funerals go, they are always sad, \nbut our belief is that you celebrate the person passing to another life that is eternally \nhappy.  Therefore, it is a time to celebrate (sort of) and a time to quietly reminisce with \nfamily and friends.  Food generously pours in from everyone wishing to express and \nshare their sympathy and to help share the burden of entertaining the crowds who visit \nand mourn.  I miss her a lot. \n\u2014  \nAunt Julia Greco lived with Grandma.  Although she never married, I think she had \nmore than a few suitors in her time because she was (and is) very attractive.  She has \nalways been interested in health issues; she exercised, traveled a lot, and had many \ngirlfriends.  She was (and is) very active in Saint Anthony\u2019s Church; she was my Girl \nScout leader for a few years and chaperoned retreats, etc.  I remember her keeping a \nVERY clean house, driving Grandma and others around town, and lending my brother, \nJohn, her car, which she was teased about because she kept it so clean and put so few \nmiles on it.  Of course, it is Aunt Julia whom we all know best for giving the kids a \nChristmas gift every single year until they graduated from high school.  She continues \nthis tradition through the generations, even today\u2014 she did it with my own children until \nthey graduated from high school.  In California, it was a custom in our family for the \nchildren to open Aunt Julia\u2019s present first (before dinner) on Christmas Eve.  She \nobviously enjoys giving to this day.  I love and appreciate her generosity.  Although the \nhouse in which she lives has changed in appearance through her tasteful remodeling, she \nkeeps up the tradition of the original Greco home on Odell Avenue.  \n\u2014  \nUncle Sammy Greco  I remember Uncle Sammy when we lived on Odell Avenue, and he \nwould stop over to say hello on his way home from work.  He was a tailor and had a shop \non Oak Hill Avenue (same street as Roma\u2019s Bakery).  He invariably had pumpkinseeds in \nhis pocket and would always offer you some.  He was constantly cracking the seeds and \nleaving the shells behind.  We laughed because it was our perception that he would stop\n\nxvi \n \noff at one or more of his sisters\u2019 homes on his way home and sample some of whatever \nthey were preparing for dinner.  We always wondered if Aunt Rose was ever upset that \nhe must have been full by the time he sat down to his own dinner at night!  Uncle Sammy \nalways talked about going to California, but I remember the day he actually said he was \npacking up and leaving.  It was traumatic\u2014 he had five children\u2014 I remember thinking he \nwas really brave!  (It was 20 years later that we followed in his footsteps!)  During \nWWII, he enlisted in the Marines and received the Purple Heart Medal after he was \nwounded in the Battle at Iwo Jima.  To this day, he stays in touch with his military \nbuddies.  He still eats pumpkinseeds, sews, and enjoys dabbling in construction jobs for \nhis family, while Aunt Rose works at a hospital and is active in rescuing cats and other \nanimals for the Humane Society.  They live happily near all their children in Southern \nCalifornia. \n\u2014  \n \n \nFrom left to right top row:  Diane Randesi, Ann Delorey, Joyce Delorey, Mary Beth Schofield, \nAnn Marie VanOostendorp, Chery McDermott, Teresa Delorey.  Bottom row: Marie Shea, \nAunt Minnie DiFulvio, Aunt Julia Greco, Angie Dellos and Aunt Lily Pisani.  Photo taken at a \n1996 \u201cGirls Only\u201d Family Reunion in Boston.\n\nxvii \n \nMy mother, Angie (her real name is Angelina, which appropriately means \u201cLittle \nAngel\u201d) Dellos   My mother truly deserves a book of her own.  Lord knows I would not \nrun out of kind words for her throughout an entire book.  My perception of my mother \nwas (and is) that she is rather quiet, at least compared to me.  I always wished I had her \ndemeanor, but I\u2019ve learned to accept that I just don\u2019t.  My mother is more of a listener \nthan a talker, and honestly, never complains about anything.  I remember her in many, \nmany fond ways too numerous to mention in a cookbook.  But, at least where food is \nconcerned, she was (and is) one of the best cooks\uf8e7 just ask my husband!  She wouldn\u2019t \nsay so, but I\u2019ve never had an Italian dish at a restaurant better than what she can throw \ntogether in minutes.  She starts most dishes with a little garlic and a little onion in olive \noil\u2026 and, she ends most dishes with \u201ca little\u201d Parmesan cheese.  A little of this and a \nlittle of that, and she has a good meal going.  She still saves leftovers and makes the best \nmeals out of them.  She still sets the table for herself and my dad (and anyone else who\u2019s \nthere) and presents her food in the most appetizing way, unlike so many of us who are \neating on the run so much of the time.  She reads cookbooks the way you read a text \nbook\u2014 taking every recipe seriously, but always ending up with the standard favorites.  \nShe cuts recipes out of the newspaper and makes notes next to them if they are worth \nkeeping.  She\u2019s very creative with food, but very modest about it.   \n \nWe had macaroni every Sunday afternoon and were allowed to buy one quart of  Ma\u2019s \nRoot Beer soda from Tedeschi\u2019s (the market across the street from our house).  It was just \nenough for all five of us to have one glass each.  That\u2019s it.  No more soda for the rest of \nthe week\u2014 it was milk with every meal\u2014 it was a meal every single night.  My mother \nmade chocolate cake (p. 122) once a week, usually on Friday after she cleaned the house.  \nMy brothers and I remember coming home from school on Friday afternoon to a \nspanking clean house with the smell of chocolate cake (God forbid if you cut into it \nwithout asking)\u2014 the clean sheets were cool (from being hung outside to dry) and tucked \ninto the sides of the bed\u2014 it was a wonderful feeling!  Monday night dinner was typically \nchicken soup (p. 15).  Tuesday night was left-over macaroni from Sunday.  Common \nother meals during the week were pasta e fagioli (pronounced pasta-fa-zool, p. 50), veal \ncutlet, peppers and eggs, and pasta with tuna sauce (p. 46).  Once in a while, we had \ncereal for supper.  To this day, cereal is one of my favorite dinners.  Because we always \nhad full, complete meals, I thought of \u201ccereal for dinner\u201d as a treat, I guess!  Anyway, I \nam very fortunate and happy that my mother lives within 10 miles of me in Northern \nCalifornia so I still have plenty of opportunity to enjoy her\u2014 and her meals. \n \n*****\n\nxviii \n \n \nAunt Julia, Mom (Angie), Aunt Lily, Uncle Sam, Aunt Minnie in 1998 \n \n \nAunt Lily Pisani (Her real name is Lillian.)  I loved Aunt Lily\u2019s black hair and her white \nteeth.  She had (and has) a sexy, crooked eyetooth, which I secretly wished for because I \nthought her smile was so beautiful!  She moved to Ohio for a time after she married my \nUncle Joe.  I remember their wedding\u2014 he was so handsome, and she had the biggest and \nshiniest diamond ring I ever saw!  Uncle Joe was a shoe salesman who used to send my \ncousin, Ann Marie, and I, shoes because we wore the sample size.  He sent us our First \nCommunion shoes, of which we were so proud, and a pair of cowgirl boots, which were \nalso favorites.  When Ann Marie and I were 10 years old, we spent a summer with Aunt \nLily in Canton, Ohio.  She and Uncle Joe were wonderful to us.  We were the kids they \ndidn\u2019t have\uf8e7 yet.  They totally spoiled us\u2014 they let us buy a box of 24 chocolate candy \nbars once a week at the grocery store; they let us bake cakes, and allowed us to take the \nbus to town by ourselves.  We often took walks at night to the Grotto where we would all \npray for Aunt Lily to get pregnant, stopping for ice cream on the way back.  She \neventually did have that baby girl, Mary Beth, who is 10 years younger than I, so I think \nthose trips to the Grotto worked!  Aunt Lily is the baby of the family, and gets the prize \nfor submitting the most recipes for this book.  I was asked by a cousin to please include \neverything that she submitted because it\u2019s all good!  I knew that."}];
+
+const CATS = [
+  {id:'introduction',label:'Introduction',isIntro:true},
+  {id:'all',label:'All Recipes'},
+  {id:'Appetizers',label:'Appetizers'},{id:'Soups',label:'Soups'},
+  {id:'Salads',label:'Salads'},{id:'Pasta',label:'Pasta'},
+  {id:'Meat',label:'Meat'},{id:'Fish',label:'Fish'},
+  {id:'Non-Meat',label:'Non-Meat'},{id:'Desserts',label:'Desserts'},
+  {id:'Miscellaneous',label:'Miscellaneous'},
+];
+
+const CE = {Appetizers:'&#x1F352;',Soups:'&#x1F372;',Salads:'&#x1F957;',Pasta:'&#x1F35D;',
+  Meat:'&#x1F969;',Fish:'&#x1F41F;','Non-Meat':'&#x1F966;',Desserts:'&#x1F370;',Miscellaneous:'&#x1F374;'};
+
+let allRecipes = [];
+let activeCat = 'all';
+let selectedId = null;
+let selectedIntroIdx = null;
+let editingId = null;
+let searchQ = '';
+let searchTimer = null;
+
+// ── Password ──
+let cookbookPassword = sessionStorage.getItem('cookbook-pwd') || '';
+let pendingAction = null;
+
+function requirePassword(action) {
+  if (cookbookPassword) { action(); return; }
+  pendingAction = action;
+  document.getElementById('pwd-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('pwd-input').focus(), 50);
+}
+
+function submitPassword() {
+  const pwd = document.getElementById('pwd-input').value.trim();
+  if (!pwd) return;
+  const errEl = document.getElementById('pwd-error');
+  const inputEl = document.getElementById('pwd-input');
+  errEl.textContent = '';
+  inputEl.classList.remove('error');
+
+  console.log('Sending password to /api/auth:', pwd);
+  fetch('/api/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pwd })
+  })
+  .then(res => { console.log('Auth response status:', res.status); return res.json(); })
+  .then(data => {
+    console.log('Auth response data:', JSON.stringify(data));
+    if (data.success) {
+      cookbookPassword = pwd;
+      sessionStorage.setItem('cookbook-pwd', pwd);
+      document.getElementById('pwd-overlay').style.display = 'none';
+      inputEl.value = '';
+      if (pendingAction) { pendingAction(); pendingAction = null; }
+    } else {
+      errEl.textContent = 'Incorrect password. Try again.';
+      inputEl.classList.add('error');
+      inputEl.value = '';
+      inputEl.focus();
+    }
+  })
+  .catch(() => {
+    errEl.textContent = 'Connection error. Try again.';
+  });
+}
+
+// ── API helpers ──
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (cookbookPassword) opts.headers['x-cookbook-password'] = cookbookPassword;
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch('/api' + path, opts);
+  if (res.status === 401) {
+    cookbookPassword = '';
+    sessionStorage.removeItem('cookbook-pwd');
+    throw new Error('Password required');
+  }
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status-msg ' + (type||'');
+  if (type === 'saved') { clearTimeout(el._t); el._t = setTimeout(() => { el.textContent = ''; }, 2500); }
+}
+
+// ── Load recipes ──
+async function loadRecipes() {
+  document.getElementById('recipe-list').innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>'
+  // Show wake-up message if loading takes more than 4 seconds
+  const wakeTimer = setTimeout(() => {
+    const listEl = document.getElementById('recipe-list');
+    if (listEl && listEl.querySelector('.spinner')) {
+      listEl.innerHTML = '<div class="loading"><div class="spinner"></div> Waking up server, please wait...</div>';
+    }
+  }, 4000);
+  try {
+    const params = new URLSearchParams();
+    if (activeCat !== 'all' && activeCat !== 'introduction') params.set('category', activeCat);
+    if (searchQ) params.set('search', searchQ);
+    const data = await api('GET', '/recipes?' + params);
+    if (!Array.isArray(data)) throw new Error('Invalid response from server');
+    clearTimeout(wakeTimer);
+    allRecipes = data;
+    renderList();
+    renderSidebar();
+  } catch(e) {
+    clearTimeout(wakeTimer);
+    console.error('loadRecipes error:', e);
+    document.getElementById('recipe-list').innerHTML = '<div class="empty-state">Failed to load recipes: ' + e.message + '</div>';
+  }
+}
+
+// ── Sidebar ──
+function renderSidebar() {
+  const nav = document.getElementById('cat-nav');
+  const counts = {};
+  allRecipes.forEach(r => { counts[r.category] = (counts[r.category]||0) + 1; });
+
+  let html = '<div class="nav-section-label">Front Matter</div>';
+  html += '<button class="cat-btn intro-btn' + (activeCat==='introduction'?' active':'') + '" data-cat="introduction">'
+    + '<span class="cat-dot dot-Introduction"></span>Introduction'
+    + '<span class="cat-count">' + INTRO_PAGES.length + '</span></button>';
+  html += '<hr class="nav-divider"><div class="nav-section-label">Recipes</div>';
+
+  CATS.filter(c => !c.isIntro).forEach(c => {
+    const cnt = c.id === 'all' ? allRecipes.length : (counts[c.id]||0);
+    const dot = c.id !== 'all' ? 'dot-' + c.id.replace(' ','-') : 'dot-all';
+    html += '<button class="cat-btn' + (activeCat===c.id?' active':'') + '" data-cat="' + c.id + '">'
+      + '<span class="cat-dot ' + dot + '"></span>' + c.label
+      + '<span class="cat-count">' + cnt + '</span></button>';
+  });
+
+  nav.innerHTML = html;
+  document.getElementById('total-count').textContent = allRecipes.length + ' recipes';
+
+  nav.querySelectorAll('.cat-btn').forEach(btn => {
+    btn.addEventListener('click', function() { selCat(this.dataset.cat); });
+  });
+}
+
+// ── Recipe list ──
+function renderList() {
+  const label = document.getElementById('list-label');
+  const el = document.getElementById('recipe-list');
+  const addBtn = document.getElementById('add-btn');
+
+  if (activeCat === 'introduction') {
+    addBtn.classList.add('hidden');
+    label.innerHTML = '<strong>Introduction</strong> &mdash; pages i&ndash;xviii';
+    el.innerHTML = INTRO_PAGES.map((sec, idx) =>
+      '<div class="recipe-row intro-row' + (selectedIntroIdx===idx?' selected':'') + '" data-intro="' + idx + '">'
+      + '<div class="recipe-icon">&#x1F4C4;</div>'
+      + '<div class="recipe-info"><div class="recipe-name">' + esc(sec.title) + '</div>'
+      + '<div class="recipe-meta">Page ' + esc(sec.page) + '</div></div>'
+      + '<span class="pill pill-Introduction">Introduction</span></div>'
+    ).join('');
+    el.querySelectorAll('.intro-row').forEach(row => {
+      row.addEventListener('click', function() { selIntro(parseInt(this.dataset.intro)); });
+    });
+    return;
+  }
+
+  addBtn.classList.remove('hidden');
+  const catName = activeCat === 'all' ? 'All Recipes' : activeCat;
+  label.innerHTML = '<strong>' + allRecipes.length + '</strong> ' + (allRecipes.length===1?'recipe':'recipes')
+    + (activeCat !== 'all' ? ' &middot; ' + catName : '');
+
+  if (!allRecipes.length) {
+    el.innerHTML = '<div class="empty-state">No recipes found</div>';
+    return;
+  }
+  el.innerHTML = allRecipes.map(r =>
+    '<div class="recipe-row' + (selectedId===r.id?' selected':'') + '" data-id="' + r.id + '">'
+    + '<div class="recipe-icon">' + (CE[r.category]||'&#x1F374;') + '</div>'
+    + '<div class="recipe-info"><div class="recipe-name">' + esc(r.name) + '</div>'
+    + '<div class="recipe-meta">' + esc(r.submitted_by||'') + '</div></div>'
+    + '<span class="pill pill-' + r.category.replace(' ','-') + '">' + r.category + '</span></div>'
+  ).join('');
+  el.querySelectorAll('.recipe-row').forEach(row => {
+    row.addEventListener('click', function() { selRecipe(parseInt(this.dataset.id)); });
+  });
+}
+
+// ── Detail panel ──
+function renderDetail() {
+  const empty = document.getElementById('detail-empty');
+  const body = document.getElementById('detail-body');
+  const actions = document.getElementById('detail-actions');
+
+  if (activeCat === 'introduction' && selectedIntroIdx !== null) {
+    const sec = INTRO_PAGES[selectedIntroIdx];
+    empty.style.display = 'none'; body.style.display = 'block'; actions.style.display = 'none';
+    body.innerHTML =
+      '<div class="detail-hero intro-hero">'
+      + '<div class="detail-hero-icon">&#x1F4D6;</div>'
+      + '<div class="detail-hero-name">' + esc(sec.title) + '</div>'
+      + '<div class="detail-pills"><span class="intro-page-tag">Page ' + esc(sec.page) + '</span></div></div>'
+      + '<div class="detail-content"><div class="intro-prose">' + esc(sec.content) + '</div></div>';
+    return;
+  }
+
+  if (!selectedId) {
+    empty.style.display = 'flex'; body.style.display = 'none'; actions.style.display = 'none'; return;
+  }
+  const r = allRecipes.find(x => parseInt(x.id) === parseInt(selectedId));
+  if (!r) { empty.style.display = 'flex'; body.style.display = 'none'; actions.style.display = 'none'; return; }
+
+  empty.style.display = 'none'; body.style.display = 'block'; actions.style.display = 'flex';
+  const ings = Array.isArray(r.ingredients) ? r.ingredients : [];
+  const steps = Array.isArray(r.steps) ? r.steps : [];
+  const catCls = r.category.replace(' ','-');
+
+  body.innerHTML =
+    '<div class="detail-hero">'
+    + '<div class="detail-hero-icon">' + (CE[r.category]||'&#x1F374;') + '</div>'
+    + '<div class="detail-hero-name">' + esc(r.name) + '</div>'
+    + '<div class="detail-pills">'
+    + '<span class="pill pill-' + catCls + '">' + r.category + '</span>'
+    + (r.time_to_prepare && r.time_to_prepare !== '-' ? '<span class="pill pill-time">' + esc(r.time_to_prepare) + '</span>' : '')
+    + (r.serves ? '<span class="pill pill-serves">Serves ' + esc(r.serves) + '</span>' : '')
+    + '</div></div>'
+    + '<div class="detail-content">'
+    + (r.submitted_by ? '<div class="detail-section"><div class="detail-section-label">Contributed by</div><div class="detail-source">' + esc(r.submitted_by) + '</div></div>' : '')
+    + (r.description ? '<div class="detail-section"><div class="detail-notes">' + esc(r.description) + '</div></div>' : '')
+    + (ings.length ? '<div class="detail-section"><div class="detail-section-label">Ingredients</div><ul class="ing-list">'
+      + ings.map(i => '<li class="ing-row"><span class="ing-qty">' + esc(i[0]) + '</span><span>' + esc(i[1]) + '</span></li>').join('')
+      + '</ul></div>' : '')
+    + (steps.length ? '<div class="detail-section"><div class="detail-section-label">Instructions</div><ol class="step-list">'
+      + steps.map((s,i) => '<li class="step-item"><span class="step-num">' + (i+1) + '</span><span>' + esc(s) + '</span></li>').join('')
+      + '</ol></div>' : '')
+    + '</div>';
+}
+
+// ── Navigation ──
+function selCat(id) {
+  activeCat = id; selectedId = null; selectedIntroIdx = null;
+  if (id === 'introduction') { renderSidebar(); renderList(); renderDetail(); }
+  else loadRecipes().then(() => renderDetail());
+}
+
+function selRecipe(id) { selectedId = parseInt(id); selectedIntroIdx = null; renderList(); renderDetail(); }
+function selIntro(idx) { selectedIntroIdx = idx; selectedId = null; renderList(); renderDetail(); }
+
+// ── CRUD ──
+function openAdd() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'New Recipe';
+  document.getElementById('modal-save-btn').textContent = 'Add Recipe';
+  ['f-name','f-by','f-time','f-serves','f-desc','f-ings','f-steps'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-cat').value = 'Miscellaneous';
+  document.getElementById('modal').style.display = 'flex';
+  document.getElementById('f-name').focus();
+}
+
+function openEdit() {
+  const r = allRecipes.find(x => parseInt(x.id) === parseInt(selectedId));
+  if (!r) return;
+  editingId = r.id;
+  document.getElementById('modal-title').textContent = 'Edit Recipe';
+  document.getElementById('modal-save-btn').textContent = 'Save Changes';
+  document.getElementById('f-name').value = r.name;
+  document.getElementById('f-cat').value = r.category;
+  document.getElementById('f-by').value = r.submitted_by || '';
+  document.getElementById('f-time').value = r.time_to_prepare || '';
+  document.getElementById('f-serves').value = r.serves || '';
+  document.getElementById('f-desc').value = r.description || '';
+  document.getElementById('f-ings').value = (r.ingredients||[]).map(i => i[0]+'|'+i[1]).join('\n');
+  document.getElementById('f-steps').value = (r.steps||[]).join('\n');
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+async function saveRecipe() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { alert('Please enter a recipe name.'); return; }
+  const body = {
+    name,
+    category: document.getElementById('f-cat').value,
+    submitted_by: document.getElementById('f-by').value.trim(),
+    time_to_prepare: document.getElementById('f-time').value.trim(),
+    serves: document.getElementById('f-serves').value.trim(),
+    description: document.getElementById('f-desc').value.trim(),
+    ingredients: document.getElementById('f-ings').value.trim()
+      .split('\n').filter(Boolean).map(l => { const p=l.split('|'); return [p[0]||'',p[1]||p[0]||'']; }),
+    steps: document.getElementById('f-steps').value.trim().split('\n').filter(Boolean),
+  };
+  setStatus('Saving...', 'saving');
+  try {
+    if (editingId) {
+      await api('PUT', '/recipes/' + editingId, body);
+    } else {
+      const created = await api('POST', '/recipes', body);
+      selectedId = created.id;
+    }
+    setStatus('Saved', 'saved');
+    closeModal();
+    await loadRecipes();
+    renderDetail();
+  } catch(e) {
+    setStatus('Save failed', 'error');
+    alert('Error saving recipe: ' + e.message);
+  }
+}
+
+async function deleteRecipe() {
+  const r = allRecipes.find(x => parseInt(x.id) === parseInt(selectedId));
+  if (!r || !confirm('Delete "' + r.name + '"? This cannot be undone.')) return;
+  setStatus('Deleting...', 'saving');
+  try {
+    await api('DELETE', '/recipes/' + selectedId);
+    selectedId = null;
+    setStatus('Deleted', 'saved');
+    await loadRecipes();
+    renderDetail();
+  } catch(e) {
+    setStatus('Delete failed', 'error');
+  }
+}
+
+function printRecipe() {
+  const r = allRecipes.find(x => parseInt(x.id) === parseInt(selectedId));
+  if (!r) return;
+
+  const ings = Array.isArray(r.ingredients) ? r.ingredients : [];
+  const steps = Array.isArray(r.steps) ? r.steps : [];
+
+  const win = window.open('', '_blank', 'width=700,height=900');
+  win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${r.name}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, serif; color: #1C1917; background: white; padding: 40px; max-width: 680px; margin: 0 auto; }
+  .header { border-bottom: 2px solid #1C1917; padding-bottom: 16px; margin-bottom: 24px; }
+  .book-name { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #78716C; margin-bottom: 8px; }
+  h1 { font-size: 28px; font-weight: normal; line-height: 1.2; margin-bottom: 10px; }
+  .meta { display: flex; gap: 20px; font-size: 13px; color: #44403C; flex-wrap: wrap; }
+  .meta span { display: flex; align-items: center; gap: 4px; }
+  .meta .dot { width: 4px; height: 4px; border-radius: 50%; background: #A8A29E; }
+  .source { font-size: 13px; color: #78716C; font-style: italic; margin-top: 6px; }
+  .note { background: #F7F0E4; border-left: 3px solid #B07D3A; padding: 10px 14px; margin: 16px 0; font-size: 13px; color: #44403C; line-height: 1.6; border-radius: 0 4px 4px 0; }
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 10px; font-weight: bold; letter-spacing: 0.14em; text-transform: uppercase; color: #A8A29E; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #E7E2D9; }
+  .ing-table { width: 100%; border-collapse: collapse; }
+  .ing-table tr { border-bottom: 1px solid #F0EDE8; }
+  .ing-table tr:last-child { border-bottom: none; }
+  .ing-table td { padding: 6px 0; font-size: 14px; vertical-align: top; }
+  .ing-table td:first-child { color: #78716C; width: 140px; font-size: 13px; padding-right: 16px; }
+  .steps-list { list-style: none; }
+  .steps-list li { display: flex; gap: 14px; padding: 8px 0; font-size: 14px; line-height: 1.6; color: #44403C; border-bottom: 1px solid #F0EDE8; }
+  .steps-list li:last-child { border-bottom: none; }
+  .step-num { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: #1C1917; color: white; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #E7E2D9; font-size: 11px; color: #A8A29E; text-align: center; }
+  @media print { body { padding: 20px; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="book-name">The Greco Family Cookbook</div>
+  <h1>${r.name}</h1>
+  <div class="meta">
+    ${r.category ? '<span>' + r.category + '</span>' : ''}
+    ${r.time_to_prepare && r.time_to_prepare !== '-' ? '<span><span class="dot"></span>' + r.time_to_prepare + '</span>' : ''}
+    ${r.serves ? '<span><span class="dot"></span>Serves ' + r.serves + '</span>' : ''}
+  </div>
+  ${r.submitted_by ? '<div class="source">Contributed by ' + r.submitted_by + '</div>' : ''}
+</div>
+
+${r.description ? '<div class="note">' + r.description + '</div>' : ''}
+
+${ings.length ? `<div class="section">
+  <div class="section-title">Ingredients</div>
+  <table class="ing-table">
+    ${ings.map(i => '<tr><td>' + i[0] + '</td><td>' + i[1] + '</td></tr>').join('')}
+  </table>
+</div>` : ''}
+
+${steps.length ? `<div class="section">
+  <div class="section-title">Instructions</div>
+  <ol class="steps-list">
+    ${steps.map((s, i) => '<li><span class="step-num">' + (i+1) + '</span><span>' + s + '</span></li>').join('')}
+  </ol>
+</div>` : ''}
+
+<div class="footer">The Greco Family Cookbook &mdash; grecofamilycookbook.com</div>
+</body>
+</html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 400);
+}
+
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Event listeners ──
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('print-btn').addEventListener('click', printRecipe);
+  document.getElementById('add-btn').addEventListener('click', () => requirePassword(openAdd));
+  document.getElementById('edit-btn').addEventListener('click', () => requirePassword(openEdit));
+  document.getElementById('delete-btn').addEventListener('click', () => requirePassword(deleteRecipe));
+  document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+  document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+  document.getElementById('modal-save-btn').addEventListener('click', saveRecipe);
+  document.getElementById('modal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
+  document.getElementById('search').addEventListener('input', function(e) {
+    searchQ = e.target.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(loadRecipes, 300);
+  });
+  document.getElementById('pwd-submit-btn').addEventListener('click', submitPassword);
+  document.getElementById('pwd-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') submitPassword();
+    if (e.key === 'Escape') {
+      document.getElementById('pwd-overlay').style.display = 'none';
+      pendingAction = null;
+    }
+  });
+  document.getElementById('pwd-overlay').addEventListener('click', function(e) {
+    if (e.target === this) {
+      this.style.display = 'none';
+      pendingAction = null;
+    }
+  });
+  document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+  // Keep server awake - ping every 5 minutes to prevent Render spin-down
+  setInterval(() => {
+    fetch('/api/health').catch(() => {});
+  }, 5 * 60 * 1000);
+
+  loadRecipes();
+});
+
+
+</script>
+
+<div class="pwd-overlay" id="pwd-overlay" style="display:none">
+  <div class="pwd-box">
+    <div class="pwd-lock">&#x1F512;</div>
+    <div class="pwd-title">Family access only</div>
+    <div class="pwd-subtitle">Enter the family password to add, edit, or delete recipes.</div>
+    <div class="pwd-input-wrap">
+      <input class="pwd-input" type="password" id="pwd-input" placeholder="Password" />
+      <button class="pwd-btn" id="pwd-submit-btn">Enter</button>
+    </div>
+    <div class="pwd-error" id="pwd-error"></div>
+  </div>
+</div>
+
+</body>
+</html>
