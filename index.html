@@ -355,17 +355,28 @@ function setStatus(msg, type) {
 
 // ── Load recipes ──
 async function loadRecipes() {
-  document.getElementById('recipe-list').innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>';
+  document.getElementById('recipe-list').innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>'
+  // Show wake-up message if loading takes more than 4 seconds
+  const wakeTimer = setTimeout(() => {
+    const listEl = document.getElementById('recipe-list');
+    if (listEl && listEl.querySelector('.spinner')) {
+      listEl.innerHTML = '<div class="loading"><div class="spinner"></div> Waking up server, please wait...</div>';
+    }
+  }, 4000);
   try {
     const params = new URLSearchParams();
     if (activeCat !== 'all' && activeCat !== 'introduction') params.set('category', activeCat);
     if (searchQ) params.set('search', searchQ);
     const data = await api('GET', '/recipes?' + params);
+    if (!Array.isArray(data)) throw new Error('Invalid response from server');
+    clearTimeout(wakeTimer);
     allRecipes = data;
     renderList();
     renderSidebar();
   } catch(e) {
-    document.getElementById('recipe-list').innerHTML = '<div class="empty-state">Failed to load recipes. Is the server running?</div>';
+    clearTimeout(wakeTimer);
+    console.error('loadRecipes error:', e);
+    document.getElementById('recipe-list').innerHTML = '<div class="empty-state">Failed to load recipes: ' + e.message + '</div>';
   }
 }
 
@@ -461,7 +472,7 @@ function renderDetail() {
   if (!selectedId) {
     empty.style.display = 'flex'; body.style.display = 'none'; actions.style.display = 'none'; return;
   }
-  const r = allRecipes.find(x => x.id === selectedId);
+  const r = allRecipes.find(x => parseInt(x.id) === parseInt(selectedId));
   if (!r) { empty.style.display = 'flex'; body.style.display = 'none'; actions.style.display = 'none'; return; }
 
   empty.style.display = 'none'; body.style.display = 'block'; actions.style.display = 'flex';
@@ -497,7 +508,7 @@ function selCat(id) {
   else loadRecipes().then(() => renderDetail());
 }
 
-function selRecipe(id) { selectedId = id; selectedIntroIdx = null; renderList(); renderDetail(); }
+function selRecipe(id) { selectedId = parseInt(id); selectedIntroIdx = null; renderList(); renderDetail(); }
 function selIntro(idx) { selectedIntroIdx = idx; selectedId = null; renderList(); renderDetail(); }
 
 // ── CRUD ──
@@ -512,7 +523,7 @@ function openAdd() {
 }
 
 function openEdit() {
-  const r = allRecipes.find(x => x.id === selectedId);
+  const r = allRecipes.find(x => parseInt(x.id) === parseInt(selectedId));
   if (!r) return;
   editingId = r.id;
   document.getElementById('modal-title').textContent = 'Edit Recipe';
@@ -563,7 +574,7 @@ async function saveRecipe() {
 }
 
 async function deleteRecipe() {
-  const r = allRecipes.find(x => x.id === selectedId);
+  const r = allRecipes.find(x => parseInt(x.id) === parseInt(selectedId));
   if (!r || !confirm('Delete "' + r.name + '"? This cannot be undone.')) return;
   setStatus('Deleting...', 'saving');
   try {
@@ -578,7 +589,7 @@ async function deleteRecipe() {
 }
 
 function printRecipe() {
-  const r = allRecipes.find(x => x.id === selectedId);
+  const r = allRecipes.find(x => parseInt(x.id) === parseInt(selectedId));
   if (!r) return;
 
   const ings = Array.isArray(r.ingredients) ? r.ingredients : [];
@@ -686,6 +697,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+  // Keep server awake - ping every 5 minutes to prevent Render spin-down
+  setInterval(() => {
+    fetch('/api/health').catch(() => {});
+  }, 5 * 60 * 1000);
+
   loadRecipes();
 });
 
