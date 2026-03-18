@@ -570,37 +570,38 @@ function esc(s) {
 }
 
 // ── Event listeners ──
-document.getElementById('add-btn').addEventListener('click', () => requirePassword(openAdd));
-document.getElementById('edit-btn').addEventListener('click', () => requirePassword(openEdit));
-document.getElementById('delete-btn').addEventListener('click', () => requirePassword(deleteRecipe));
-document.getElementById('modal-close-btn').addEventListener('click', closeModal);
-document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
-document.getElementById('modal-save-btn').addEventListener('click', saveRecipe);
-document.getElementById('modal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
-document.getElementById('search').addEventListener('input', function(e) {
-  searchQ = e.target.value;
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(loadRecipes, 300);
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('add-btn').addEventListener('click', () => requirePassword(openAdd));
+  document.getElementById('edit-btn').addEventListener('click', () => requirePassword(openEdit));
+  document.getElementById('delete-btn').addEventListener('click', () => requirePassword(deleteRecipe));
+  document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+  document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+  document.getElementById('modal-save-btn').addEventListener('click', saveRecipe);
+  document.getElementById('modal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
+  document.getElementById('search').addEventListener('input', function(e) {
+    searchQ = e.target.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(loadRecipes, 300);
+  });
+  document.getElementById('pwd-submit-btn').addEventListener('click', submitPassword);
+  document.getElementById('pwd-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') submitPassword();
+    if (e.key === 'Escape') {
+      document.getElementById('pwd-overlay').style.display = 'none';
+      pendingAction = null;
+    }
+  });
+  document.getElementById('pwd-overlay').addEventListener('click', function(e) {
+    if (e.target === this) {
+      this.style.display = 'none';
+      pendingAction = null;
+    }
+  });
+  document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+  loadRecipes();
 });
-document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
 
-// ── Init ──
-loadRecipes();
 
-document.getElementById('pwd-submit-btn').addEventListener('click', submitPassword);
-document.getElementById('pwd-input').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') submitPassword();
-  if (e.key === 'Escape') {
-    document.getElementById('pwd-overlay').style.display = 'none';
-    pendingAction = null;
-  }
-});
-document.getElementById('pwd-overlay').addEventListener('click', function(e) {
-  if (e.target === this) {
-    this.style.display = 'none';
-    pendingAction = null;
-  }
-});
 </script>
 
 <div class="pwd-overlay" id="pwd-overlay" style="display:none">
