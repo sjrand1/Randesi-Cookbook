@@ -472,7 +472,7 @@ function renderDetail() {
       + '<div class="detail-hero-icon">&#x1F4D6;</div>'
       + '<div class="detail-hero-name">' + esc(sec.title) + '</div>'
       + '<div class="detail-pills"><span class="intro-page-tag">Page ' + esc(sec.page) + '</span></div></div>'
-      + '<div class="detail-content"><div class="intro-prose">' + esc(sec.content) + '</div></div>';
+      + '<div class="detail-content"><div class="intro-prose">' + formatIntro(sec.content, sec.title) + '</div></div>';
     return;
   }
 
@@ -692,6 +692,49 @@ ${steps.length ? `<div class="section">
   setTimeout(() => { win.print(); }, 400);
 }
 
+function formatIntro(text, title) {
+  if (!text) return '';
+
+  // For Title Page - special centered layout
+  if (title === 'Title Page') {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    return '<div style="text-align:center;padding:20px 0">'
+      + lines.map((l, i) => {
+          if (i === 0) return '<div style="font-family:Playfair Display,serif;font-size:28px;font-weight:600;color:var(--ink);line-height:1.2;margin-bottom:4px">' + esc(l) + '</div>';
+          if (i === 1) return '<div style="font-family:Playfair Display,serif;font-size:22px;font-style:italic;color:var(--gold);margin-bottom:4px">' + esc(l) + '</div>';
+          if (l.startsWith('“') || l.includes('Cook')) return '<div style="font-family:Playfair Display,serif;font-size:18px;font-style:italic;color:var(--ink-soft);margin:12px 0">' + esc(l) + '</div>';
+          if (l.startsWith('…') || l.startsWith('plus')) return '<div style="font-size:13px;color:var(--ink-muted);font-style:italic;margin:8px 0 20px">' + esc(l) + '</div>';
+          if (l === 'Compiled and written by') return '<div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-faint);margin-top:24px">' + esc(l) + '</div>';
+          if (l.includes('Randesi') || l.includes('Steve')) return '<div style="font-size:14px;font-weight:500;color:var(--ink);margin-top:4px">' + esc(l) + '</div>';
+          return '<div style="font-size:13px;color:var(--ink-soft);margin:3px 0">' + esc(l) + '</div>';
+        }).join('')
+      + '</div>';
+  }
+
+  // Strip leading page number lines (e.g. "iv
+ 
+")
+  text = text.replace(/^[ivxlcdm]+\n[ \n]*/i, '');
+
+  // Split into paragraphs on blank lines
+  const paragraphs = text.split(/\n[ \t]*\n/).filter(p => p.trim());
+
+  return paragraphs.map(para => {
+    const trimmed = para.trim();
+    // Section headings (ALL CAPS lines)
+    if (/^[A-Z][A-Z\s\/\-]{4,}$/.test(trimmed)) {
+      return '<h3 style="font-family:Playfair Display,serif;font-size:15px;font-weight:600;letter-spacing:0.06em;color:var(--ink);margin:20px 0 10px;border-bottom:1px solid var(--border);padding-bottom:6px">' + esc(trimmed) + '</h3>';
+    }
+    // Lines that are short centered-looking titles
+    if (trimmed.length < 40 && !trimmed.includes('.') && trimmed === trimmed.toUpperCase()) {
+      return '<div style="font-weight:600;color:var(--ink);margin:12px 0 6px">' + esc(trimmed) + '</div>';
+    }
+    // Regular paragraph
+    const lines = trimmed.split('\n').map(l => l.trim()).filter(l => l).join(' ');
+    return '<p style="font-size:13px;line-height:1.8;color:var(--ink-soft);margin:0 0 12px">' + esc(lines) + '</p>';
+  }).join('');
+}
+
 function esc(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -777,13 +820,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
 
-  // ── Init: show Introduction first, load recipes in background ──
-  // Show intro immediately - no API call needed
+  // ── Init: show Introduction first, Title Page open by default ──
+  selectedIntroIdx = 0;
   renderSidebar();
   renderList();
   renderDetail();
 
-  // Load recipes in background so they're ready when user switches to recipe view
+  // Load recipes in background
   loadRecipes();
 });
 
