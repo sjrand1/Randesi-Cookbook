@@ -291,7 +291,7 @@ const CE = {Appetizers:'&#x1F352;',Soups:'&#x1F372;',Salads:'&#x1F957;',Pasta:'&
   Meat:'&#x1F969;',Fish:'&#x1F41F;','Non-Meat':'&#x1F966;',Desserts:'&#x1F370;',Miscellaneous:'&#x1F374;'};
 
 let allRecipes = [];
-let activeCat = 'all';
+let activeCat = 'introduction';
 let selectedId = null;
 let selectedIntroIdx = null;
 let editingId = null;
@@ -777,6 +777,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
 
+  // ── Init: show Introduction first, load recipes in background ──
+  // Show intro immediately - no API call needed
+  renderSidebar();
+  renderList();
+  renderDetail();
+
+  // Load recipes in background so they're ready when user switches to recipe view
   loadRecipes();
 });
 
