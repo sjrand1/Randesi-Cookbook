@@ -416,9 +416,7 @@ function renderSidebar() {
   nav.innerHTML = html;
   document.getElementById('total-count').textContent = allRecipes.length + ' recipes';
 
-  nav.querySelectorAll('.cat-btn').forEach(btn => {
-    btn.addEventListener('click', function() { selCat(this.dataset.cat); });
-  });
+  // listeners attached via delegation below - no per-render attachment needed
 }
 
 // ── Recipe list ──
@@ -437,9 +435,7 @@ function renderList() {
       + '<div class="recipe-meta">Page ' + esc(sec.page) + '</div></div>'
       + '<span class="pill pill-Introduction">Introduction</span></div>'
     ).join('');
-    el.querySelectorAll('.intro-row').forEach(row => {
-      row.addEventListener('click', function() { selIntro(parseInt(this.dataset.intro)); });
-    });
+    // listeners via delegation on #recipe-list
     return;
   }
 
@@ -459,9 +455,7 @@ function renderList() {
     + '<div class="recipe-meta">' + esc(r.submitted_by||'') + '</div></div>'
     + '<span class="pill pill-' + r.category.replace(' ','-') + '">' + r.category + '</span></div>'
   ).join('');
-  el.querySelectorAll('.recipe-row').forEach(row => {
-    row.addEventListener('click', function() { selRecipe(parseInt(this.dataset.id)); });
-  });
+  // listeners via delegation on #recipe-list
 }
 
 // ── Detail panel ──
@@ -705,6 +699,23 @@ function esc(s) {
 // ── Event listeners ──
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('print-btn').addEventListener('click', printRecipe);
+
+  // ── Delegated category nav listener (survives re-renders) ──
+  document.getElementById('cat-nav').addEventListener('click', function(e) {
+    const btn = e.target.closest('.cat-btn');
+    if (btn && btn.dataset.cat) selCat(btn.dataset.cat);
+  });
+
+  // ── Delegated recipe list listener (survives re-renders) ──
+  document.getElementById('recipe-list').addEventListener('click', function(e) {
+    const row = e.target.closest('.recipe-row');
+    if (!row) return;
+    if (row.dataset.intro !== undefined) {
+      selIntro(parseInt(row.dataset.intro));
+    } else if (row.dataset.id !== undefined) {
+      selRecipe(parseInt(row.dataset.id));
+    }
+  });
   document.getElementById('add-btn').addEventListener('click', () => requirePassword(openAdd));
   document.getElementById('edit-btn').addEventListener('click', () => requirePassword(openEdit));
   document.getElementById('delete-btn').addEventListener('click', () => requirePassword(deleteRecipe));
