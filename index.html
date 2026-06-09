@@ -146,9 +146,17 @@
   .dot-Non-Meat{background:#22C55E} .dot-Desserts{background:#EC4899} .dot-Miscellaneous{background:#8B5CF6}
   .dot-Introduction{background:#93B4D4} .dot-all{background:rgba(255,255,255,0.2)}
 
-  @media(max-width:900px){:root{--detail-w:260px}}
-  @media(max-width:700px){.detail{display:none}:root{--sidebar-w:180px}}
-  @media(max-width:500px){.sidebar{display:none}}
+  @media(max-width:900px){:root{--detail-w:300px}}
+  @media(max-width:700px){
+    .app{position:relative;overflow:hidden}
+    .sidebar{position:absolute;left:0;top:0;bottom:0;z-index:10;transform:translateX(-100%);transition:transform 0.25s ease;width:280px!important}
+    .sidebar.open{transform:translateX(0);box-shadow:4px 0 24px rgba(0,0,0,0.3)}
+    .main{width:100%!important;min-width:0}
+    .detail{position:absolute;left:0;right:0;top:0;bottom:0;z-index:5;width:100%!important;transform:translateX(100%);transition:transform 0.25s ease}
+    .detail.open{transform:translateX(0)}
+    .mobile-menu-btn{display:flex!important}
+    .mobile-back-btn,.mobile-detail-header{display:flex!important}
+  }
 
   /* ── Password modal ── */
   .pwd-overlay { position: fixed; inset: 0; background: rgba(28,25,23,0.75); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(3px); }
@@ -167,7 +175,8 @@
 </head>
 <body>
 <div class="app">
-  <aside class="sidebar">
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <div class="script">Greco Family</div>
       <div class="subtitle">Cookbook</div>
@@ -181,6 +190,7 @@
 
   <main class="main">
     <div class="main-header">
+      <button class="mobile-menu-btn" id="mobile-menu-btn">&#9776;</button>
       <div class="main-header-title" id="list-label">Loading...</div>
       <span class="status-msg" id="status-msg"></span>
       <button class="btn-add" id="add-btn">+ Add Recipe</button>
@@ -190,7 +200,10 @@
     </div>
   </main>
 
-  <aside class="detail">
+  <aside class="detail" id="detail">
+    <div class="mobile-detail-header" id="mobile-detail-header" style="display:none; padding:10px 14px; border-bottom:1px solid var(--border); background:var(--warm-white);">
+      <button class="mobile-back-btn" id="mobile-back-btn" style="display:flex;">&#8592; Back</button>
+    </div>
     <div class="detail-empty" id="detail-empty">
       <div class="detail-empty-icon">&#x1F374;</div>
       <p>Select a recipe or introduction section to read</p>
@@ -504,12 +517,34 @@ function renderDetail() {
 // ── Navigation ──
 function selCat(id) {
   activeCat = id; selectedId = null; selectedIntroIdx = null;
+  if (window.innerWidth <= 700) {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
+  }
   if (id === 'introduction') { renderSidebar(); renderList(); renderDetail(); }
   else loadRecipes().then(() => renderDetail());
 }
 
-function selRecipe(id) { selectedId = parseInt(id); selectedIntroIdx = null; renderList(); renderDetail(); }
-function selIntro(idx) { selectedIntroIdx = idx; selectedId = null; renderList(); renderDetail(); }
+function selRecipe(id) {
+  selectedId = parseInt(id);
+  selectedIntroIdx = null;
+  renderList();
+  renderDetail();
+  if (window.innerWidth <= 700) {
+    document.getElementById('detail').classList.add('open');
+    document.getElementById('mobile-detail-header').style.display = 'flex';
+  }
+}
+function selIntro(idx) {
+  selectedIntroIdx = idx;
+  selectedId = null;
+  renderList();
+  renderDetail();
+  if (window.innerWidth <= 700) {
+    document.getElementById('detail').classList.add('open');
+    document.getElementById('mobile-detail-header').style.display = 'flex';
+  }
+}
 
 // ── CRUD ──
 function openAdd() {
@@ -701,6 +736,35 @@ document.addEventListener('DOMContentLoaded', function() {
   setInterval(() => {
     fetch('/api/health').catch(() => {});
   }, 5 * 60 * 1000);
+
+  // ── Mobile navigation ──
+  const isMobile = () => window.innerWidth <= 700;
+
+  document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('open');
+  });
+
+  document.getElementById('sidebar-overlay').addEventListener('click', function() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
+  });
+
+  document.getElementById('mobile-back-btn').addEventListener('click', function() {
+    document.getElementById('detail').classList.remove('open');
+    selectedId = null;
+    selectedIntroIdx = null;
+    renderList();
+  });
+
+  // Close sidebar when category selected on mobile
+  const origSelCat = selCat;
+  window.selCatMobile = function(id) {
+    if (isMobile()) {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-overlay').classList.remove('open');
+    }
+  };
 
   loadRecipes();
 });
