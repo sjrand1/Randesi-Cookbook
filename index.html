@@ -299,9 +299,7 @@ function formatIntro(text, title) {
       + '</div>';
   }
 
-  // Strip leading page number lines (e.g. "iv
- 
-")
+  // Strip leading page number lines e.g. iv or vii at top
   text = text.replace(/^[ivxlcdm]+\n[ \n]*/i, '');
 
   // Split into paragraphs on blank lines
@@ -924,9 +922,7 @@ function formatIntro(text, title) {
       + '</div>';
   }
 
-  // Strip leading page number lines (e.g. "iv
- 
-")
+  // Strip leading page number lines e.g. iv or vii at top
   text = text.replace(/^[ivxlcdm]+\n[ \n]*/i, '');
 
   // Split into paragraphs on blank lines
