@@ -345,18 +345,29 @@ function submitPassword() {
 }
 
 // ── API helpers ──
-async function api(method, path, body) {
+async function api(method, path, body, timeoutMs) {
+  timeoutMs = timeoutMs || 45000;
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (cookbookPassword) opts.headers['x-cookbook-password'] = cookbookPassword;
   if (body) opts.body = JSON.stringify(body);
-  const res = await fetch('/api' + path, opts);
-  if (res.status === 401) {
-    cookbookPassword = '';
-    sessionStorage.removeItem('cookbook-pwd');
-    throw new Error('Password required');
+  const controller = new AbortController();
+  opts.signal = controller.signal;
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch('/api' + path, opts);
+    clearTimeout(timer);
+    if (res.status === 401) {
+      cookbookPassword = '';
+      sessionStorage.removeItem('cookbook-pwd');
+      throw new Error('Password required');
+    }
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  } catch(e) {
+    clearTimeout(timer);
+    if (e.name === 'AbortError') throw new Error('Request timed out — server may be waking up. Please try again.');
+    throw e;
   }
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
 }
 
 function setStatus(msg, type) {
@@ -368,12 +379,24 @@ function setStatus(msg, type) {
 
 // ── Load recipes ──
 async function loadRecipes() {
-  document.getElementById('recipe-list').innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>'
+  // Only show spinner if user is viewing a recipes category, not intro
+  const showSpinner = activeCat !== 'introduction';
+  if (showSpinner) {
+    document.getElementById('recipe-list').innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>';
+  }
   // Show wake-up message if loading takes more than 4 seconds
   const wakeTimer = setTimeout(() => {
+    if (!showSpinner) return;
     const listEl = document.getElementById('recipe-list');
     if (listEl && listEl.querySelector('.spinner')) {
-      listEl.innerHTML = '<div class="loading"><div class="spinner"></div> Waking up server, please wait...</div>';
+      listEl.innerHTML = '<div class="loading" style="flex-direction:column;gap:12px"><div style="display:flex;align-items:center;gap:10px"><div class="spinner"></div> Waking up server...</div><div style="font-size:11px;color:var(--ink-faint)">This can take up to 30 seconds on the free tier</div></div>';
+      // Show retry button after 25 more seconds
+      setTimeout(() => {
+        const el2 = document.getElementById('recipe-list');
+        if (el2 && (el2.querySelector('.spinner') || el2.innerHTML.includes('Waking'))) {
+          el2.innerHTML = '<div class="empty-state" style="padding:32px;text-align:center"><div style="font-size:32px;margin-bottom:12px">&#x23F1;</div><div style="font-weight:500;color:var(--ink);margin-bottom:6px">Server is taking a while</div><div style="font-size:12px;color:var(--ink-faint);margin-bottom:20px">The free server may need a moment to wake up</div><button onclick="loadRecipes()" style="padding:8px 20px;background:var(--accent);color:white;border:none;border-radius:6px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer">Try Again</button></div>';
+        }
+      }, 25000);
     }
   }, 4000);
   try {
@@ -384,12 +407,19 @@ async function loadRecipes() {
     if (!Array.isArray(data)) throw new Error('Invalid response from server');
     clearTimeout(wakeTimer);
     allRecipes = data;
-    renderList();
+    // Only re-render list if not viewing introduction
+    if (activeCat !== 'introduction') renderList();
     renderSidebar();
   } catch(e) {
     clearTimeout(wakeTimer);
     console.error('loadRecipes error:', e);
-    document.getElementById('recipe-list').innerHTML = '<div class="empty-state">Failed to load recipes: ' + e.message + '</div>';
+    document.getElementById('recipe-list').innerHTML =
+      '<div class="empty-state" style="padding:32px;text-align:center">'
+      + '<div style="font-size:32px;margin-bottom:12px">&#x1F4F6;</div>'
+      + '<div style="font-weight:500;color:var(--ink);margin-bottom:6px">Could not reach server</div>'
+      + '<div style="font-size:12px;color:var(--ink-faint);margin-bottom:20px">' + e.message + '</div>'
+      + '<button onclick="loadRecipes()" style="padding:8px 20px;background:var(--accent);color:white;border:none;border-radius:6px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer">Try Again</button>'
+      + '</div>';
   }
 }
 
